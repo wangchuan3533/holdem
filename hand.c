@@ -32,8 +32,8 @@ hand_rank_t calc_rank(hand_t hand)
 
 hand_rank_t _calc_rank(hand_t hand)
 {
-    int i, j, numbers[CARD_BASE] = {0}, colors[COLOR_NUM] = {0};
-    int flush = 0, straight = 0, four = 0, three = 0, two = 0;
+    int i, j, numbers[CARD_BASE] = {0}, colors[4] = {0}, statistics[CARD_NUM] = {0};
+    int flush = 0, straight = 0;
     hand_rank_t rank;
 
     // prepare
@@ -42,28 +42,20 @@ hand_rank_t _calc_rank(hand_t hand)
         colors[hand[i] / CARD_BASE]++;
     }
 
-    for (i = 0; i < COLOR_NUM; i++) {
+    // check flush
+    for (i = 0; i < 4; i++) {
         if (colors[i] == CARD_NUM) {
             flush = 1;
         }
     }
 
+    // statistics
     for (i = 0; i < CARD_BASE; i++) {
-        switch (numbers[i]) {
-        case 4:
-            four++;
-            break;
-        case 3:
-            three++;
-            break;
-        case 2:
-            two++;
-            break;
-        }
+        statistics[numbers[i]]++;
     }
 
-    if (!(two || three || four)) {
-        for (i = 0; i < CARD_BASE - CARD_NUM; i++) {
+    if (!(statistics[2] || statistics[3] || statistics[4])) {
+        for (i = 0; i <= CARD_BASE - CARD_NUM; i++) {
             for (j = 0; j < CARD_NUM; j++) {
                 if (!numbers[i + j]) {
                     break;
@@ -77,10 +69,15 @@ hand_rank_t _calc_rank(hand_t hand)
 
     // calculate score
     rank.score = 0;
-    for (i = CARD_BASE - 1; i >= 0; i--) {
-        if (numbers[i]) {
-            rank.score *= CARD_BASE;
-            rank.score += numbers[i];
+    for (i = 4; i > 0; i--) {
+        if (statistics[i] == 0) {
+            continue;
+        }
+        for (j = CARD_BASE - 1; j >= 0; j--) {
+            if (numbers[j] == i) {
+                rank.score *= CARD_BASE;
+                rank.score += j;
+            }
         }
     }
 
@@ -90,12 +87,12 @@ hand_rank_t _calc_rank(hand_t hand)
         return rank;
     }
 
-    if (four) {
+    if (statistics[4]) {
         rank.level = FOUR_OF_A_KIND;
         return rank;
     }
     
-    if (three && two) {
+    if (statistics[3] && statistics[2]) {
         rank.level = FULL_HORSE;
         return rank;
     }
@@ -110,17 +107,17 @@ hand_rank_t _calc_rank(hand_t hand)
         return rank;
     }
     
-    if (three) {
+    if (statistics[3]) {
         rank.level = THREE_OF_A_KIND;
         return rank;
     }
 
-    if (two >= 2) {
+    if (statistics[2] >= 2) {
         rank.level = TWO_PAIR;
         return rank;
     }
 
-    if (two) {
+    if (statistics[2]) {
         rank.level = ONE_PAIR;
         return rank;
     }

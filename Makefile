@@ -12,9 +12,14 @@ OBJS=$(SOURCES:.c=.o)
 .PHONY: clean
 all: main
 
+test: C_FLAGS+=-DUNIT_TEST
+test: test
+
 main : $(OBJS)
+	$(CC) $^ $(LD_FLAGS) -o $@
+test : $(OBJS)
 	$(CC) $^ $(LD_FLAGS) -o $@
 %.o: %.c $(HEADERS)
 	$(CC) $(C_FLAGS) -c $< -o $@
 clean:
-	$(RM) *.o main
+	$(RM) *.o main test

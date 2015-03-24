@@ -220,6 +220,7 @@ void start_game()
     broadcast(&g_table, "[GAME] Next is %s\n", current_player(&g_table)->name);
 }
 
+#ifndef UNIT_TEST
 int main(int c, char **v)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -228,3 +229,4 @@ int main(int c, char **v)
     run();
     return 0;
 }
+#endif

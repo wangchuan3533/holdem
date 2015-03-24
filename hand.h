@@ -3,7 +3,6 @@
 #include "card.h"
 
 #define CARD_BASE 13
-#define COLOR_NUM 4
 #define HAND_NUM 7
 #define CARD_NUM 5
 typedef card_t *hand_t;
