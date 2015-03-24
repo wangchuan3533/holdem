@@ -19,14 +19,12 @@ typedef enum table_state_e {
 
 typedef struct table_s {
     table_state_t state;
-
     deck_t deck;
     card_t community_cards[5];
 
-    list_t waiting_players;
-    list_t gaming_players;
-    list_t folded_playsers;
-
+    list_t *waiting_players;
+    list_t *gaming_players;
+    list_t *folded_playsers;
     list_node_t *turn;
 
     int pot;
@@ -37,11 +35,11 @@ typedef struct table_s {
 } table_t;
 
 #define current_player(t) ((player_t *)((t)->turn->data))
-#define next_player(t) ((player_t *)(((t)->turn->next) ? (t)->turn->next->data : (t)->gaming_players.head->data))
-#define prev_player(t) ((player_t *)(((t)->turn->prev) ? (t)->turn->prev->data : (t)->gaming_players.tail->data))
+#define next_player(t) ((player_t *)(((t)->turn->next) ? (t)->turn->next->data : (t)->gaming_players->head->data))
+#define prev_player(t) ((player_t *)(((t)->turn->prev) ? (t)->turn->prev->data : (t)->gaming_players->tail->data))
 #define move_next(t) do {\
-    if ((t)->turn == (t)->gaming_players.tail) {\
-        (t)->turn = (t)->gaming_players.head;\
+    if ((t)->turn == (t)->gaming_players->tail) {\
+        (t)->turn = (t)->gaming_players->head;\
     } else {\
         (t)->turn = (t)->turn->next;\
     }\
@@ -60,7 +58,7 @@ void send_msg(player_t *player, const char *fmt, ...);
 
 #define report(table, player) do {\
     broadcast((table), "[PLAYER]%s [POT]%d [BID]%d [STATE]%d\n", (player)->name, (player)->pot, (player)->bid, (player)->state);\
-    broadcast((table), "[TABLE] [POT]%d [BID]%d [STATE]%s\n", (table)->pot, (table)->bid, (player)->state);\
+    broadcast((table), "[TABLE] [POT]%d [BID]%d [STATE]%d\n", (table)->pot, (table)->bid, (player)->state);\
     broadcast((table), "[TABLE] NEXT IS %s\n", ((player_t *)((table)->turn->data))->name);\
 } while (0)
 

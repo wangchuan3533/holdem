@@ -49,6 +49,9 @@ void readcb(struct bufferevent *bev, void *ctx)
             case 'r':
             case 'R':
                 bid = atoi(line + 2);
+                if (!bid) {
+                    goto _chat;
+                }
                 player->pot -= bid;
                 player->bid += bid;
                 table->bid  += bid;
@@ -92,8 +95,8 @@ void readcb(struct bufferevent *bev, void *ctx)
             // fold
             case 'f':
                 break;
-                list_remove(&table->gaming_players, table->turn, NULL);
-                list_insert_next(&table->folded_playsers, table->folded_playsers.tail, player);
+                list_remove(table->gaming_players, table->turn, NULL);
+                list_insert_next(table->folded_playsers, table->folded_playsers->tail, player);
                 player->state = PLAYER_STATE_FOLDED;
                 table->pot += player->bid;
                 player->bid = 0;
@@ -156,7 +159,7 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
         player->bid = 0;
         player->pot = 10000;
         player->state = PLAYER_STATE_GAME;
-        list_insert_next(&g_table.gaming_players, g_table.gaming_players.tail, player);
+        list_insert_next(g_table.gaming_players, g_table.gaming_players->tail, player);
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);

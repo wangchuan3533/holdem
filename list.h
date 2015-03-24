@@ -19,5 +19,7 @@ int list_insert_prev(list_t *list, list_node_t *element, void *data);
 int list_insert_next(list_t *list, list_node_t *element, void *data);
 int list_remove(list_t *list, list_node_t *element, void **data);
 
+#define list_size(list) ((list)->size)
+
 #endif
 
