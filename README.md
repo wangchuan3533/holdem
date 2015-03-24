@@ -11,3 +11,12 @@ sudo apt-get install libevent-dev
 ```bash
 jumbo install libevent
 ```
+
+## test
+```bash
+git clone http://gitlab.baidu.com/wangchuan02/texas_holdem.git
+cd texas_holdem
+make
+./main &
+telnet localhost 10000
+```
