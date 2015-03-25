@@ -185,6 +185,7 @@ void broadcast(table_t *table, const char *fmt, ...)
             evbuffer_add_vprintf(bufferevent_get_output(table->players[i]->bev), fmt, ap);
         }
     }
+    vprintf(fmt, ap);
     va_end(ap);
 }
 
