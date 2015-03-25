@@ -24,7 +24,6 @@
 
 #define MAX_LINE 16384
 table_t g_table;
-int num_players = 0;
 
 void do_read(evutil_socket_t fd, short events, void *arg);
 void do_write(evutil_socket_t fd, short events, void *arg);
@@ -34,20 +33,19 @@ void start_game();
 void readcb(struct bufferevent *bev, void *ctx)
 {
     struct evbuffer *input;
-    player_t *player = (player_t *)ctx, *next;
+    player_t *player = (player_t *)ctx;
     table_t *table = &g_table;
     char *line;
     size_t n;
-    int bid;
+    int bid, next;
     input = bufferevent_get_input(bev);
 
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         if (player == current_player(table) && player->state == PLAYER_STATE_GAME) {
-            next = next_player(table);
+            next = next_player(table, table->turn);
             switch (line[0]) {
             // raise
             case 'r':
-            case 'R':
                 bid = atoi(line + 2);
                 if (!bid) {
                     goto _chat;
@@ -55,17 +53,16 @@ void readcb(struct bufferevent *bev, void *ctx)
                 player->pot -= bid;
                 player->bid += bid;
                 table->bid  += bid;
-                move_next(table);
+                table->turn = next;
                 broadcast(table, "[PLAYER]%s [RAISE]: %d => %d\n", player->name, bid, player->bid);
                 goto _report;
             // call
             case 'c':
-            case 'C':
                 bid = table->bid - player->bid;
                 player->pot -= bid;
                 player->bid  += bid;
                 broadcast(table, "[PLAYER]%s [CALL]: %d => %d\n", player->name, bid, player->bid);
-                if (next->bid == table->bid) {
+                if (table->players[next].bid == table->bid) {
                     switch (table->state) {
                     case TABLE_STATE_WAITING:
                         table_pre_flop(table);
@@ -90,25 +87,22 @@ void readcb(struct bufferevent *bev, void *ctx)
                     }
                     break;
                 }
-                move_next(table);
+                table->turn = next;
                 goto _report;
             // fold
             case 'f':
-                break;
-                list_remove(table->gaming_players, table->turn, NULL);
-                list_insert_next(table->folded_playsers, table->folded_playsers->tail, player);
                 player->state = PLAYER_STATE_FOLDED;
                 table->pot += player->bid;
                 player->bid = 0;
-                broadcast(table, "[PLAYER]%s [FOLDS]: %d => %d\n", player->name, bid, player->bid);
-                broadcast(table, "[GAME] NEXT IS %s\n", next->name);
+                broadcast(table, "[PLAYER]%s [FOLDS]\n", player->name);
+                goto _report;
                 break;
             default:
-_report:
-                report(table, player);
-                break;
 _chat:
                 broadcast(table, "[CHAT]: %s => %s\n", player->name, line);
+                break;
+_report:
+                report(table);
                 break;
             }
         } else {
@@ -150,22 +144,18 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(fd);
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        player = (player_t *)malloc(sizeof(player_t));
-        if (player == NULL) {
-            perror("malloc");
-        }
-        snprintf(player->name, sizeof(player->name), "%d", num_players);
+        player = &(g_table.players[g_table.num_players]);
+        snprintf(player->name, sizeof(player->name), "%d", g_table.num_players);
         player->bev = bev;
         player->bid = 0;
         player->pot = 10000;
         player->state = PLAYER_STATE_GAME;
-        list_insert_next(g_table.gaming_players, g_table.gaming_players->tail, player);
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
         broadcast(&g_table, "[TABLE] Player %s joined\n", player->name);
-        num_players++;
-        if (num_players >= MIN_PLAYERS) {
+        g_table.num_players++;
+        if (g_table.num_players >= MIN_PLAYERS) {
             start_game();
         }
     }
@@ -217,7 +207,7 @@ void start_game()
 {
     table_pre_flop(&g_table);
     broadcast(&g_table, "[GAME] GAME BEGIN\n");
-    broadcast(&g_table, "[GAME] Next is %s\n", current_player(&g_table)->name);
+    report(&g_table);
 }
 
 #ifndef UNIT_TEST

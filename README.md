@@ -17,6 +17,6 @@ jumbo install libevent
 git clone http://gitlab.baidu.com/wangchuan02/texas_holdem.git
 cd texas_holdem
 make
-./main &
+./server &
 telnet localhost 10000
 ```

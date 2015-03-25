@@ -2,6 +2,7 @@
 #define _PLAYER_H
 #define MAX_NAME 64
 #include "card.h"
+#include "hand.h"
 struct bufferevent;
 
 typedef enum player_state_e {
@@ -18,6 +19,7 @@ typedef struct player_s {
     int pot;
     int bid;
     card_t hand_cards[7];
+    hand_rank_t rank;
     player_state_t state;
 } player_t;
 
