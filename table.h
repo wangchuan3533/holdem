@@ -5,7 +5,7 @@
 #include "card.h"
 #include "player.h"
 
-#define MAX_PLAYERS 16
+#define TABLE_MAX_PLAYERS 16
 #define MIN_PLAYERS 3
 
 typedef enum table_state_e {
@@ -22,7 +22,7 @@ typedef struct table_s {
     deck_t deck;
     card_t community_cards[5];
 
-    player_t players[MAX_PLAYERS];
+    player_t *players[TABLE_MAX_PLAYERS];
     int num_players;
     int dealer;
     int turn;
@@ -34,7 +34,7 @@ typedef struct table_s {
     int minimum_bet;
 } table_t;
 
-#define current_player(t) ((player_t *)(&((t)->players[(t)->turn])))
+#define current_player(t) ((t)->players[(t)->turn])
 int next_player(table_t *table, int index);
 
 void table_init(table_t *table);
@@ -49,7 +49,7 @@ void send_msg(player_t *player, const char *fmt, ...);
 
 #define report(table) do {\
     broadcast((table), "[TABLE] [POT]%d [BID]%d [STATE]%d\n", (table)->pot, (table)->bid, (table)->state);\
-    broadcast((table), "[TABLE] NEXT IS %s\n", ((table)->players[(table)->turn]).name);\
+    broadcast((table), "[TABLE] NEXT IS %s\n", ((table)->players[(table)->turn])->name);\
 } while (0)
 
 #define feedback(player) do {\

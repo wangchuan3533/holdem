@@ -34,7 +34,7 @@ void readcb(struct bufferevent *bev, void *ctx)
 {
     struct evbuffer *input;
     player_t *player = (player_t *)ctx;
-    table_t *table = &g_table;
+    table_t *table = player->table;
     char *line;
     size_t n;
     int bid, next;
@@ -62,7 +62,7 @@ void readcb(struct bufferevent *bev, void *ctx)
                 player->pot -= bid;
                 player->bid  += bid;
                 broadcast(table, "[PLAYER]%s [CALL]: %d => %d\n", player->name, bid, player->bid);
-                if (table->players[next].bid == table->bid) {
+                if (table->players[next]->bid == table->bid) {
                     switch (table->state) {
                     case TABLE_STATE_WAITING:
                         table_pre_flop(table);
@@ -95,6 +95,7 @@ void readcb(struct bufferevent *bev, void *ctx)
                 table->pot += player->bid;
                 player->bid = 0;
                 broadcast(table, "[PLAYER]%s [FOLDS]\n", player->name);
+                table->turn = next;
                 goto _report;
                 break;
             default:
@@ -144,17 +145,20 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(fd);
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        player = &(g_table.players[g_table.num_players]);
-        snprintf(player->name, sizeof(player->name), "%d", g_table.num_players);
+        player = &g_players[g_num_players];
+        player->state = PLAYER_STATE_NAME;
+        snprintf(player->name, sizeof(player->name), "%d", g_num_players);
+        player->state = PLAYER_STATE_WAITING;
         player->bev = bev;
         player->bid = 0;
         player->pot = 10000;
-        player->state = PLAYER_STATE_GAME;
+        player->table = &g_table;
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
-        broadcast(&g_table, "[TABLE] Player %s joined\n", player->name);
-        g_table.num_players++;
+        broadcast(player->table, "[TABLE] Player %s joined\n", player->name);
+        g_num_players++;
+        g_table.players[g_table.num_players++] = player;
         if (g_table.num_players >= MIN_PLAYERS) {
             start_game();
         }
