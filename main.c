@@ -22,6 +22,13 @@
 #include "table.h"
 #include "list.h"
 
+#define err_quit(fmt, args...) do {\
+    fprintf(stderr, "[file:%s line:%d]", __FILE__, __LINE__);\
+    fprintf(stderr, fmt, ##args);\
+    exit(1);\
+} while (0)
+
+
 #define MAX_LINE 16384
 table_t g_table;
 
@@ -43,70 +50,46 @@ void readcb(struct bufferevent *bev, void *ctx)
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         if (player == current_player(table) && player->state == PLAYER_STATE_GAME) {
             next = next_player(table, table->turn);
+            if (next < 0) {
+                err_quit("next");
+            }
             switch (line[0]) {
             // raise
             case 'r':
                 bid = atoi(line + 2);
-                if (!bid) {
+                if (player_bet(player, bid) != 0) {
                     goto _chat;
                 }
-                player->pot -= bid;
-                player->bid += bid;
-                table->bid  += bid;
                 table->turn = next;
-                broadcast(table, "[PLAYER]%s [RAISE]: %d => %d\n", player->name, bid, player->bid);
                 goto _report;
             // call
             case 'c':
                 bid = table->bid - player->bid;
-                player->pot -= bid;
-                player->bid  += bid;
-                broadcast(table, "[PLAYER]%s [CALL]: %d => %d\n", player->name, bid, player->bid);
+                if (player_bet(player, bid) != 0) {
+                    goto _chat;
+                }
                 if (table->players[next]->bid == table->bid) {
-                    switch (table->state) {
-                    case TABLE_STATE_WAITING:
-                        table_pre_flop(table);
-                        break;
-                    case TABLE_STATE_PREFLOP:
-                        table_flop(table);
-                        break;
-                    case TABLE_STATE_FLOP:
-                        table_turn(table);
-                        break;
-                    case TABLE_STATE_TURN:
-                        table_river(table);
-                        break;
-                    case TABLE_STATE_RIVER:
-                        table_showdown(table);
-                        break;
-                    default:
-                        broadcast(table, "[GAME] GAME OVER\n");
-                        broadcast(table, "[GAME] final is %d\n", table->pot);
-                        start_game();
-                        break;
-                    }
+                    handle_table(table);
                     break;
                 }
                 table->turn = next;
                 goto _report;
             // fold
             case 'f':
-                player->state = PLAYER_STATE_FOLDED;
-                table->pot += player->bid;
-                player->bid = 0;
-                broadcast(table, "[PLAYER]%s [FOLDS]\n", player->name);
-                table->turn = next;
-                goto _report;
+                player_fold(player);
+                if (table_check_winner(table) < 0) {
+                    table->turn = next;
+                    goto _report;
+                }
                 break;
             default:
-_chat:
-                broadcast(table, "[CHAT]: %s => %s\n", player->name, line);
-                break;
+                goto _chat;
 _report:
                 report(table);
                 break;
             }
         } else {
+_chat:
             broadcast(table, "[CHAT]: %s => %s\n", player->name, line);
         }
         free(line);

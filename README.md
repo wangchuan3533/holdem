@@ -20,3 +20,14 @@ make
 ./server &
 telnet localhost 10000
 ```
+
+## client usage
+- r <num> raise
+- c       call
+- f       fold
+
+## TODO
+- table list
+- websocket client
+- check action
+
