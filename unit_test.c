@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <assert.h>
+#include "card.h"
 #include "hand.h"
 #define TEST_CASES 6
 
-int test_card()
+int test_rank()
 {
     int i;
     card_t cases[TEST_CASES][7] = {
@@ -30,10 +31,24 @@ int test_card()
 
     return 0;
 }
+
+int test_card()
+{
+    deck_t deck;
+    int i;
+
+    init_deck(&deck);
+    for (i = 0; i < 52; i++) {
+        printf("%d ", get_card(&deck));
+    }
+    printf("\n");
+    return 0;
+}
 #ifdef UNIT_TEST
 int main()
 {
     test_card();
+    test_rank();
     return 0;
 }
 #endif

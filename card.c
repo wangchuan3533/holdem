@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 #include "card.h"
 static const char *card_string[] = {
     "Heart 2",
@@ -63,17 +64,21 @@ const char *card_to_string(card_t card)
 void init_deck(deck_t *deck)
 {
     int i;
+    srandom(time(NULL));
     for (i = 0; i < 52; i++) {
         deck->cards[i] = i;
     }
-    deck->offset = 0;
+    deck->end = 52;
 }
 
 int get_card(deck_t *deck)
 {
-    int index = random() % (52 - deck->offset);
-    deck->cards[index] ^= deck->cards[deck->offset];
-    deck->cards[deck->offset] ^= deck->cards[index];
-    deck->cards[index] ^= deck->cards[deck->offset];
-    return deck->cards[deck->offset++];
+    int index = random() % (deck->end--);
+    if (index == deck->end) {
+        return deck->cards[deck->end];
+    }
+    deck->cards[index] ^= deck->cards[deck->end];
+    deck->cards[deck->end] ^= deck->cards[index];
+    deck->cards[index] ^= deck->cards[deck->end];
+    return deck->cards[deck->end];
 }
