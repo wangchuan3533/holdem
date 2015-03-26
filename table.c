@@ -197,6 +197,45 @@ void send_msg(player_t *player, const char *fmt, ...)
     va_end(ap);
 }
 
+int add_player(table_t *table, player_t *player)
+{
+    int i;
+
+    if (table->num_players >= TABLE_MAX_PLAYERS) {
+        return -1;
+    }
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+        if (table->players[i] == NULL) {
+	    table->players[i] = player;
+	    player->table = table;
+	    table->num_players++;
+            broadcast(table, "[TABLE] Player %s joined\n", player->name);
+	    return 0;
+	}
+    }
+    // fatal
+    return -1;
+}
+
+
+int del_player(table_t *table, player_t *player)
+{
+    int i;
+    if (player->state == PLAYER_STATE_GAME) {
+        player_fold(player);
+    }
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+        if (player->table->players[i] == player) {
+	    table->num_players--;
+            player->table->players[i] = NULL;
+            broadcast(player->table, "[TABLE] Player %s quited\n", player->name);
+	    return 0;
+        }
+    }
+    // fatal
+    return -1;
+}
+
 int next_player(table_t *table, int index)
 {
     int i, next;

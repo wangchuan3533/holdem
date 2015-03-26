@@ -37,6 +37,8 @@ typedef struct table_s {
 } table_t;
 
 #define current_player(t) ((t)->players[(t)->turn])
+int add_player(table_t *table, player_t *player);
+int del_player(table_t *table, player_t *player);
 int next_player(table_t *table, int index);
 int player_fold(player_t *player);
 int player_bet(player_t *player, int bid);

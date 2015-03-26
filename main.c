@@ -34,8 +34,6 @@ table_t g_table;
 
 void do_read(evutil_socket_t fd, short events, void *arg);
 void do_write(evutil_socket_t fd, short events, void *arg);
-void start_game();
-
 
 void readcb(struct bufferevent *bev, void *ctx)
 {
@@ -98,6 +96,8 @@ _chat:
 
 void errorcb(struct bufferevent *bev, short error, void *ctx)
 {
+    player_t *player = (player_t *)ctx;
+
     if (error & BEV_EVENT_EOF) {
         /* connection has been closed, do any clean up here */
         /* ... */
@@ -108,6 +108,8 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
         /* must be a timeout event handle, handle it */
         /* ... */
     }
+    del_player(player->table, player);
+    memset(player, 0, sizeof(player_t));
     bufferevent_free(bev);
 }
 
@@ -122,28 +124,32 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
         perror("accept");
     } else if (fd > FD_SETSIZE) {
         close(fd);
-    } else if (g_table.state != TABLE_STATE_WAITING) {
-        close(fd);
     } else {
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(fd);
+        player = available_player();
+	if (player == NULL) {
+            close(fd);
+	    return;
+	}
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        player = &g_players[g_num_players];
         player->state = PLAYER_STATE_NAME;
-        snprintf(player->name, sizeof(player->name), "%d", g_num_players);
+        snprintf(player->name, sizeof(player->name), "%lx", (uint64_t)player);
         player->state = PLAYER_STATE_WAITING;
         player->bev = bev;
         player->bid = 0;
         player->pot = 10000;
-        player->table = &g_table;
+	if (add_player(&g_table, player) < 0) {
+	    bufferevent_free(bev);
+            close(fd);
+	    memset(player, 0, sizeof(player_t));
+	    return;
+	}
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
-        broadcast(player->table, "[TABLE] Player %s joined\n", player->name);
-        g_num_players++;
-        g_table.players[g_table.num_players++] = player;
         if (g_table.num_players >= MIN_PLAYERS) {
-            start_game();
+            table_pre_flop(&g_table);
         }
     }
 }
@@ -188,13 +194,6 @@ void run(void)
     event_add(listener_event, NULL);
 
     event_base_dispatch(base);
-}
-
-void start_game()
-{
-    table_pre_flop(&g_table);
-    broadcast(&g_table, "[GAME] GAME BEGIN\n");
-    report(&g_table);
 }
 
 #ifndef UNIT_TEST

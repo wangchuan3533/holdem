@@ -9,6 +9,7 @@ struct bufferevent;
 struct table_s;
 
 typedef enum player_state_e {
+    PLAYER_STATE_EMPTY,
     PLAYER_STATE_LOGIN,
     PLAYER_STATE_NAME,
     PLAYER_STATE_WAITING,
@@ -28,7 +29,6 @@ typedef struct player_s {
     player_state_t state;
 } player_t;
 
-extern player_t g_players[MAX_PLAYERS];
-extern int g_num_players;
+player_t *available_player();
 
 #endif
