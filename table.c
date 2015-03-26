@@ -145,7 +145,7 @@ void table_showdown(table_t *table)
         }
     }
 
-    broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d]\n", winner->name, table->pot);
+    broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", winner->name, table->pot);
     winner->pot += table->pot;
     table->pot = 0;
     table_pre_flop(table);
@@ -158,7 +158,7 @@ int table_check_winner(table_t *table)
     if (table->num_playing == 1) {
         for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
             if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
-    		broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d]\n", table->players[i]->name, table->pot);
+    		broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
                 table->players[i]->pot += table->pot;
                 table->pot = 0;
                 table_pre_flop(table);
@@ -253,7 +253,7 @@ int add_player(table_t *table, player_t *player)
 	    table->players[i] = player;
 	    player->table = table;
 	    table->num_players++;
-            broadcast(table, "[\"join\",{\"name\":\"%s\"]\n", player->name);
+            broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
 	    return 0;
 	}
     }

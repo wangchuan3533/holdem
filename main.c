@@ -46,6 +46,15 @@ void readcb(struct bufferevent *bev, void *ctx)
     input = bufferevent_get_input(bev);
 
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+        if (player->state == PLAYER_STATE_NAME) {
+	    player->state = PLAYER_STATE_WAITING;
+	    snprintf(player->name, sizeof(player->name), "%s", line);
+       	    if (add_player(&g_table, player) < 0) {
+	        bufferevent_free(bev);
+	        memset(player, 0, sizeof(player_t));
+	    }
+	    continue;
+	}
         if (player == current_player(table) && player->state == PLAYER_STATE_GAME) {
             next = next_player(table, table->turn);
             if (next < 0) {
@@ -134,17 +143,11 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
 	}
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
         player->state = PLAYER_STATE_NAME;
-        snprintf(player->name, sizeof(player->name), "%lx", (uint64_t)player);
-        player->state = PLAYER_STATE_WAITING;
+        //snprintf(player->name, sizeof(player->name), "%lx", (uint64_t)player);
+        //player->state = PLAYER_STATE_WAITING;
         player->bev = bev;
         player->bid = 0;
         player->pot = 10000;
-	if (add_player(&g_table, player) < 0) {
-	    bufferevent_free(bev);
-            close(fd);
-	    memset(player, 0, sizeof(player_t));
-	    return;
-	}
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);

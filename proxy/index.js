@@ -38,12 +38,18 @@ io.on('connection', function (socket) {
     socket.emit('login', {
       numUsers: numUsers
     });
-    socket.peer = net.connect({port:10000}, function() {
-      console.log(username + 'connected to peer server!');
+
+    socket.broadcast.emit('join', {
+      username: socket.username,
+      numUsers: numUsers
+    });
+
+    peer = net.connect({port:10000}, function() {
+      console.log(username + ' connected to peer server!');
+      peer.write(username + "\n");
     });
     
-    socket.peer.write(username + "\n");
-    socket.peer.on('data', function(resp) {
+    peer.on('data', function(resp) {
       lines = resp.toString().split("\n");
       for (i = 0; i < lines.length; i++) {
         socket.emit('message', {
@@ -52,6 +58,7 @@ io.on('connection', function (socket) {
         });
       }
     });
+    socket.peer = peer;
   });
 
   // when the client emits 'typing', we broadcast it to others
