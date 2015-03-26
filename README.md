@@ -21,6 +21,15 @@ make
 telnet localhost 10000
 ```
 
+## use websocket
+
+```bash
+cd proxy
+npm install
+node index.js
+```
+open [http://localhost:8899] with Chrome
+
 ## client usage
 - r <num> raise
 - c       call
