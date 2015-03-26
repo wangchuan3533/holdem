@@ -59,13 +59,7 @@ void send_msg(player_t *player, const char *fmt, ...);
 extern char g_table_report_buffer[4096];
 #define report(table) do {\
     table_to_json((table), g_table_report_buffer, sizeof(g_table_report_buffer));\
-    broadcast((table), "[STATE] %s\n", g_table_report_buffer);\
-} while (0)
-//broadcast((table), "[TABLE] [POT]%d [BID]%d [STATE]%d\n", (table)->pot, (table)->bid, (table)->state);
-//broadcast((table), "[TABLE] NEXT IS %s\n", ((table)->players[(table)->turn])->name);
-
-#define feedback(player) do {\
-    send_msg((player), "[PLAYER]%s [POT]%d [BID]%d [STATE]%d\n", (player)->name, (player)->pot, (player)->bid, (player)->state);\
+    broadcast((table), "[\"update\",%s]\n", g_table_report_buffer);\
 } while (0)
 
 #endif

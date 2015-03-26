@@ -88,7 +88,7 @@ _report:
             }
         } else {
 _chat:
-            broadcast(table, "[CHAT]: %s => %s\n", player->name, line);
+            broadcast(table, "[\"chat\",{\"user\":\"%s\",\"msg\":\"%s\"}]\n", player->name, line);
         }
         free(line);
     }

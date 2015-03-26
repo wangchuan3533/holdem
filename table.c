@@ -35,7 +35,7 @@ void table_pre_flop(table_t *table)
             table->players[i]->rank.level = 0;
             table->players[i]->rank.score = 0;
             table->num_playing++;
-            send_msg(table->players[i], "[PRE_FLOP] YOU GOT [%s, %s]\n",
+            send_msg(table->players[i], "[\"pre_flop\",[\"%s\",\"%s\"]]\n",
                     card_to_string(table->players[i]->hand_cards[0]),
                     card_to_string(table->players[i]->hand_cards[1]));
         }
@@ -79,7 +79,7 @@ void table_flop(table_t *table)
             table->players[i]->hand_cards[4] = table->community_cards[2];
         }
     }
-    broadcast(table, "[FLOP] YOU GOT [%s, %s, %s]\n",
+    broadcast(table, "[\"flop\",[\"%s\",\"%s\",\"%s\"]]\n",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]));
@@ -101,7 +101,7 @@ void table_turn(table_t *table)
             table->players[i]->hand_cards[5] = table->community_cards[3];
         }
     }
-    broadcast(table, "[TURN] YOU GOT [%s]\n", card_to_string(table->community_cards[3]));
+    broadcast(table, "[\"turn\",[\"%s\"]]\n",card_to_string(table->community_cards[3]));
     table->state = TABLE_STATE_TURN;
     table->bid  = 0;
     table->turn = next_player(table, table->dealer);
@@ -120,7 +120,7 @@ void table_river(table_t *table)
             table->players[i]->hand_cards[6] = table->community_cards[4];
         }
     }
-    broadcast(table, "[RIVER] YOU GOT [%s]\n", card_to_string(table->community_cards[4]));
+    broadcast(table, "[\"river\",[\"%s\"]]\n",card_to_string(table->community_cards[3]));
     table->state = TABLE_STATE_RIVER;
     table->bid  = 0;
     table->turn = next_player(table, table->dealer);
@@ -145,10 +145,9 @@ void table_showdown(table_t *table)
         }
     }
 
-    broadcast(table, "[GAME] THE WINNER %s WIN %d\n", winner->name, table->pot);
+    broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d]\n", winner->name, table->pot);
     winner->pot += table->pot;
     table->pot = 0;
-    broadcast(table, "#########################################################\n");
     table_pre_flop(table);
 }
 
@@ -159,10 +158,9 @@ int table_check_winner(table_t *table)
     if (table->num_playing == 1) {
         for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
             if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
-                broadcast(table, "[GAME] THE WINNER %s WIN %d\n", table->players[i]->name, table->pot);
+    		broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d]\n", table->players[i]->name, table->pot);
                 table->players[i]->pot += table->pot;
                 table->pot = 0;
-                broadcast(table, "#########################################################\n");
                 table_pre_flop(table);
                 return 0;
             }
@@ -255,7 +253,7 @@ int add_player(table_t *table, player_t *player)
 	    table->players[i] = player;
 	    player->table = table;
 	    table->num_players++;
-            broadcast(table, "[TABLE] Player %s joined\n", player->name);
+            broadcast(table, "[\"join\",{\"name\":\"%s\"]\n", player->name);
 	    return 0;
 	}
     }
@@ -274,7 +272,7 @@ int del_player(table_t *table, player_t *player)
         if (player->table->players[i] == player) {
 	    table->num_players--;
             player->table->players[i] = NULL;
-            broadcast(player->table, "[TABLE] Player %s quited\n", player->name);
+            broadcast(table, "[\"quit\",{\"name\":\"%s\"}]\n", player->name);
 	    return 0;
         }
     }
@@ -298,11 +296,11 @@ int next_player(table_t *table, int index)
 int player_bet(player_t *player, int bid)
 {
     if (bid + player->bid < player->table->minimum_bet) {
-        send_msg(player, "lower than minum_bet%d\n", player->bid + bid);
+        send_msg(player, "[\"invalid\",{\"bid\":%d]\n", bid);
         return -1;
     }
     if (bid < player->table->bid - player->bid) {
-        send_msg(player, "lower than table bid %d\n", player->table->bid);
+        send_msg(player, "[\"invalid\",{\"bid\":%d]\n", bid);
         return -2;
     }
     player->pot -= bid;
@@ -312,7 +310,7 @@ int player_bet(player_t *player, int bid)
         player->table->bid = player->bid;
     }
 
-    broadcast(player->table, "[PLAYER]%s [BET]: %d => %d\n", player->name, bid, player->bid);
+    broadcast(player->table, "[\"bet\",{\"name\":\"%s\",\"bid\":%d}]\n", player->name, bid);
     return 0;
 }
 
@@ -322,7 +320,7 @@ int player_fold(player_t *player)
     player->state = PLAYER_STATE_FOLDED;
     player->bid = 0;
     player->table->num_playing--;
-    broadcast(player->table, "[PLAYER]%s [FOLDS]\n", player->name);
+    broadcast(player->table, "[\"fold\",{\"name\":\"%s\"}]\n", player->name);
     return 0;
 }
 

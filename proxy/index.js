@@ -21,25 +21,14 @@ var numUsers = 0;
 
 io.on('connection', function (socket) {
   var addedUser = false;
-  socket.peer = net.connect({port:10000}, function() {
-    console.log('connected to peer server!');
+  socket.on('message', function (data) {
+    if (socket.peer) {
+      socket.peer.write(data.toString() + "\n");
+    }
   });
 
-  socket.peer.on('data', function(resp) {
-      socket.emit('new message', {
-        username: 'texas',
-        message: resp.toString()
-      });
-  });
-      // when the client emits 'new message', this listens and executes
-  socket.on('new message', function (data) {
-    // we tell the client to execute 'new message'
-    //socket.broadcast.emit('new message', {
-    socket.peer.write(data.toString() + "\n");
-  });
-
-  // when the client emits 'add user', this listens and executes
-  socket.on('add user', function (username) {
+  // when the client emits 'join', this listens and executes
+  socket.on('join', function (username) {
     // we store the username in the socket session for this client
     socket.username = username;
     // add the client's username to the global list
@@ -49,10 +38,19 @@ io.on('connection', function (socket) {
     socket.emit('login', {
       numUsers: numUsers
     });
-    // echo globally (all clients) that a person has connected
-    socket.broadcast.emit('user joined', {
-      username: socket.username,
-      numUsers: numUsers
+    socket.peer = net.connect({port:10000}, function() {
+      console.log(username + 'connected to peer server!');
+    });
+    
+    socket.peer.write(username + "\n");
+    socket.peer.on('data', function(resp) {
+      lines = resp.toString().split("\n");
+      for (i = 0; i < lines.length; i++) {
+        socket.emit('message', {
+          username: 'game',
+          message: lines[i]
+        });
+      }
     });
   });
 
@@ -64,21 +62,25 @@ io.on('connection', function (socket) {
   });
 
   // when the client emits 'stop typing', we broadcast it to others
-  socket.on('stop typing', function () {
-    socket.broadcast.emit('stop typing', {
+  socket.on('typing_off', function () {
+    socket.broadcast.emit('typing_off', {
       username: socket.username
     });
   });
 
   // when the user disconnects.. perform this
   socket.on('disconnect', function () {
+    // disconnect with the peer
+    if (socket.peer) {
+      socket.peer.destroy()
+    }
     // remove the username from global usernames list
     if (addedUser) {
       delete usernames[socket.username];
       --numUsers;
 
       // echo globally that this client has left
-      socket.broadcast.emit('user left', {
+      socket.broadcast.emit('quit', {
         username: socket.username,
         numUsers: numUsers
       });
