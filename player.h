@@ -30,5 +30,5 @@ typedef struct player_s {
 } player_t;
 
 player_t *available_player();
-
+int player_to_json(player_t *player, char *buffer, int size);
 #endif

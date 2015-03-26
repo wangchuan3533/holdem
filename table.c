@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "table.h"
 
+char g_table_report_buffer[4096];
+
 void table_init(table_t *table)
 {
     memset(table, 0, sizeof(table_t));
@@ -49,14 +51,12 @@ void table_pre_flop(table_t *table)
     table->players[table->turn]->bid += table->small_blind;
     table->players[table->turn]->pot -= table->small_blind;
     table->pot += table->players[table->turn]->bid;
-    broadcast(table, "[GAME] %s [BLIND] %d\n", table->players[table->turn]->name, table->players[table->turn]->bid);
     table->turn = next_player(table, table->turn);
 
     // big blind bet
     table->players[table->turn]->bid += table->big_blind;
     table->players[table->turn]->pot -= table->big_blind;
     table->pot += table->players[table->turn]->bid;
-    broadcast(table, "[GAME] %s [BLIND] %d\n", table->players[table->turn]->name, table->players[table->turn]->bid);
     table->turn = next_player(table, table->turn);
 
     table->bid = table->big_blind;
@@ -169,6 +169,52 @@ int table_check_winner(table_t *table)
         }
     }
     return -1;
+}
+
+int table_to_json(table_t *table, char *buffer, int size)
+{
+    char players_buffer[1024], cards_buffer[256];
+    int i, offset;
+
+    for (i = 0, offset = 0; i < TABLE_MAX_PLAYERS; i++) {
+        if (table->players[i]) {
+            offset += player_to_json(table->players[i], players_buffer + offset, sizeof(players_buffer) - offset);
+            players_buffer[offset++] = ',';
+        }
+    }
+    players_buffer[--offset] = '\0';
+
+    switch (table->state) {
+    case TABLE_STATE_FLOP:
+        snprintf(cards_buffer, sizeof(cards_buffer), "%d,%d,%d",
+                table->community_cards[0],
+                table->community_cards[1],
+                table->community_cards[2]);
+        break;
+    case TABLE_STATE_TURN:
+        snprintf(cards_buffer, sizeof(cards_buffer), "%d,%d,%d,%d",
+                table->community_cards[0],
+                table->community_cards[1],
+                table->community_cards[2],
+                table->community_cards[3]);
+        break;
+    case TABLE_STATE_RIVER:
+    case TABLE_STATE_SHOWDOWN:
+        snprintf(cards_buffer, sizeof(cards_buffer), "%d,%d,%d,%d,%d",
+                table->community_cards[0],
+                table->community_cards[1],
+                table->community_cards[2],
+                table->community_cards[3],
+                table->community_cards[4]);
+        break;
+    case TABLE_STATE_PREFLOP:
+    default:
+        cards_buffer[0] = '\0';
+        break;
+    }
+    return snprintf(buffer, size, 
+            "{\"community_cards\":[%s],\"players\":[%s],\"dealer\":%d,\"turn\":%d,\"pot\":%d,\"bid\":%d,\"minimum_bet\":%d}",
+            cards_buffer, players_buffer, table->dealer, table->turn, table->pot, table->bid, table->minimum_bet);
 }
 
 void broadcast(table_t *table, const char *fmt, ...)
