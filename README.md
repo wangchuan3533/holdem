@@ -20,6 +20,12 @@ make
 ./server &
 telnet localhost 10000
 ```
+## unit test
+```bash
+make clean
+make test
+./test
+```
 
 ## use websocket
 
