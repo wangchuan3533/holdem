@@ -52,10 +52,12 @@ io.on('connection', function (socket) {
     peer.on('data', function(resp) {
       lines = resp.toString().split("\n");
       for (i = 0; i < lines.length; i++) {
-        socket.emit('message', {
-          username: 'game',
-          message: lines[i]
-        });
+        if (lines[i].length) {
+          socket.emit('message', {
+            username: 'game',
+            message: lines[i]
+          });
+        }
       }
     });
     socket.peer = peer;

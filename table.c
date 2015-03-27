@@ -18,7 +18,7 @@ table_t *available_table()
     }
     if (i == _table_offset) {
         table_init(_tables + i);
-	_table_offset++;
+        _table_offset++;
     }
     return _tables + i;
 }
@@ -36,9 +36,12 @@ void table_pre_flop(table_t *table)
 {
     int i;
 
-    init_deck(&(table->deck));
+    if (table->num_players <= MIN_PLAYERS) {
+        table->state = TABLE_STATE_WAITING;
+        return;
+    }
 
-    
+    init_deck(&(table->deck));
     for (i = 0, table->num_playing = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]
                 && (table->players[i]->state == PLAYER_STATE_FOLDED
@@ -174,7 +177,7 @@ int table_check_winner(table_t *table)
     if (table->num_playing == 1) {
         for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
             if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
-    		broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
+                broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
                 table->players[i]->pot += table->pot;
                 table->pot = 0;
                 table_pre_flop(table);
@@ -266,12 +269,12 @@ int add_player(table_t *table, player_t *player)
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i] == NULL) {
-	    table->players[i] = player;
-	    player->table = table;
-	    table->num_players++;
+            table->players[i] = player;
+            player->table = table;
+            table->num_players++;
             broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
-	    return 0;
-	}
+            return 0;
+        }
     }
     // fatal
     return -1;
@@ -286,10 +289,10 @@ int del_player(table_t *table, player_t *player)
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (player->table->players[i] == player) {
-	    table->num_players--;
+            table->num_players--;
             player->table->players[i] = NULL;
             broadcast(table, "[\"quit\",{\"name\":\"%s\"}]\n", player->name);
-	    return 0;
+            return 0;
         }
     }
     // fatal
