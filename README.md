@@ -20,6 +20,15 @@ make
 ./server &
 telnet localhost 10000
 ```
+## use websocket
+```bash
+cd proxy
+npm install
+node index.js
+```
+open (http://localhost:8899) with your browser
+
+
 ## unit test
 ```bash
 make clean
@@ -27,22 +36,12 @@ make test
 ./test
 ```
 
-## use websocket
-
-```bash
-cd proxy
-npm install
-node index.js
-```
-open [http://localhost:8899] with Chrome
-
 ## client usage
-- r <num> raise
+- r money raise
 - c       call
 - f       fold
 
 ## TODO
 - table list
-- websocket client
 - check action
 
