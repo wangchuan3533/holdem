@@ -6,6 +6,22 @@
 #include "table.h"
 
 char g_table_report_buffer[4096];
+static table_t _tables[MAX_TABLES];
+static int _table_offset = 0;
+
+table_t *available_table()
+{
+    int i;
+    for (i = 0; i < _table_offset && _tables[i].num_players == TABLE_MAX_PLAYERS && i < TABLE_MAX_PLAYERS; i++);
+    if (i == MAX_PLAYERS) {
+        return NULL;
+    }
+    if (i == _table_offset) {
+        table_init(_tables + i);
+	_table_offset++;
+    }
+    return _tables + i;
+}
 
 void table_init(table_t *table)
 {

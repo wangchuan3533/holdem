@@ -30,7 +30,6 @@
 
 
 #define MAX_LINE 16384
-table_t g_table;
 
 void do_read(evutil_socket_t fd, short events, void *arg);
 void do_write(evutil_socket_t fd, short events, void *arg);
@@ -47,12 +46,17 @@ void readcb(struct bufferevent *bev, void *ctx)
 
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
         if (player->state == PLAYER_STATE_NAME) {
-	    player->state = PLAYER_STATE_WAITING;
-	    snprintf(player->name, sizeof(player->name), "%s", line);
-       	    if (add_player(&g_table, player) < 0) {
+	    table = available_table();
+       	    if (table == NULL || add_player(table, player) < 0) {
 	        bufferevent_free(bev);
 	        memset(player, 0, sizeof(player_t));
 	    }
+	    snprintf(player->name, sizeof(player->name), "%s", line);
+	    player->state = PLAYER_STATE_WAITING;
+
+            if (table->num_players >= MIN_PLAYERS) {
+                table_pre_flop(table);
+            }
 	    continue;
 	}
         if (player == current_player(table) && player->state == PLAYER_STATE_GAME) {
@@ -151,9 +155,6 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
-        if (g_table.num_players >= MIN_PLAYERS) {
-            table_pre_flop(&g_table);
-        }
     }
 }
 
@@ -203,7 +204,6 @@ void run(void)
 int main(int c, char **v)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
-    table_init(&g_table);
 
     run();
     return 0;

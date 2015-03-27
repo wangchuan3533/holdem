@@ -7,7 +7,7 @@
 
 #define TABLE_MAX_PLAYERS 16
 #define MIN_PLAYERS 3
-
+#define MAX_TABLES 1024
 
 typedef enum table_state_e {
     TABLE_STATE_WAITING,
@@ -52,6 +52,7 @@ void table_river(table_t *table);
 void table_showdown(table_t *table);
 int table_check_winner(table_t *table);
 int table_to_json(table_t *table, char *buffer, int size);
+table_t *available_table();
 
 void broadcast(table_t *table, const char *fmt, ...);
 void send_msg(player_t *player, const char *fmt, ...);
