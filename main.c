@@ -51,6 +51,7 @@ void readcb(struct bufferevent *bev, void *ctx)
             if (table == NULL || add_player(table, player) < 0) {
                 bufferevent_free(bev);
                 memset(player, 0, sizeof(player_t));
+                return;
             }
             player->state = PLAYER_STATE_WAITING;
             if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {

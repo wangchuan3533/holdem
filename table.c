@@ -12,8 +12,8 @@ static int _table_offset = 0;
 table_t *available_table()
 {
     int i;
-    for (i = 0; i < _table_offset && _tables[i].num_players == TABLE_MAX_PLAYERS && i < TABLE_MAX_PLAYERS; i++);
-    if (i == MAX_PLAYERS) {
+    for (i = 0; i < _table_offset && _tables[i].num_players == TABLE_MAX_PLAYERS && i < MAX_TABLES; i++);
+    if (i == MAX_TABLES) {
         return NULL;
     }
     if (i == _table_offset) {
@@ -240,6 +240,7 @@ void broadcast(table_t *table, const char *fmt, ...)
 
     va_list ap;
     va_start(ap, fmt);
+    vprintf(fmt, ap);
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]
                 && (table->players[i]->state == PLAYER_STATE_FOLDED
@@ -248,7 +249,6 @@ void broadcast(table_t *table, const char *fmt, ...)
             evbuffer_add_vprintf(bufferevent_get_output(table->players[i]->bev), fmt, ap);
         }
     }
-    vprintf(fmt, ap);
     va_end(ap);
 }
 
