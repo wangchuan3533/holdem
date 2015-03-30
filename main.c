@@ -45,6 +45,9 @@ void readcb(struct bufferevent *bev, void *ctx)
     input = bufferevent_get_input(bev);
 
     while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+        //yy_scan_string(line);
+        //yyparse();
+        //yylex_destroy();
         if (player->state == PLAYER_STATE_NAME) {
             snprintf(player->name, sizeof(player->name), "%s", line);
             table = available_table();
