@@ -36,7 +36,7 @@ void table_pre_flop(table_t *table)
 {
     int i;
 
-    if (table->num_players <= MIN_PLAYERS) {
+    if (table->num_players < MIN_PLAYERS) {
         table->state = TABLE_STATE_WAITING;
         return;
     }
@@ -241,11 +241,14 @@ void broadcast(table_t *table, const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
     vprintf(fmt, ap);
+    va_end(ap);
+    va_start(ap, fmt);
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]
                 && (table->players[i]->state == PLAYER_STATE_FOLDED
                     || table->players[i]->state == PLAYER_STATE_GAME
-                    || table->players[i]->state == PLAYER_STATE_WAITING)) {
+                    || table->players[i]->state == PLAYER_STATE_WAITING
+                    || table->players[i]->state == PLAYER_STATE_NAME)) {
             evbuffer_add_vprintf(bufferevent_get_output(table->players[i]->bev), fmt, ap);
         }
     }

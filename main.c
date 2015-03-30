@@ -44,7 +44,7 @@ void readcb(struct bufferevent *bev, void *ctx)
     int bid, next;
     input = bufferevent_get_input(bev);
 
-    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_CRLF))) {
         if (player->state == PLAYER_STATE_NAME) {
             snprintf(player->name, sizeof(player->name), "%s", line);
             table = available_table();

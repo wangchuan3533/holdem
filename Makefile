@@ -1,7 +1,7 @@
 CC=gcc
 RM=rm -rf
 C_FLAGS=-g -Wall
-C_FLAGS+=-Werror
+#C_FLAGS+=-Werror
 C_FLAGS+=-I$(HOME)/.jumbo/include
 LD_FLAGS=-levent
 LD_FLAGS+=-L$(HOME)/.jumbo/lib
