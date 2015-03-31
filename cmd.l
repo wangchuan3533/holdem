@@ -1,5 +1,6 @@
 %{
 #include "cmd.tab.h"
+#include <string.h>
 %}
 %option noinput
 %option nounput

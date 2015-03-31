@@ -41,19 +41,19 @@ texas> cd t
 ```
 ## 客户端命令
 ### 房间相关
-login <name>   登录
-logout         登出
-mkdir <name>   新建游戏
-cd <name>      加入游戏
-exit           退出游戏
-ls <name>      查看游戏或玩家
-pwd            查看当前游戏
+- login <name>   登录
+- logout         登出
+- mkdir <name>   新建游戏
+- cd <name>      加入游戏
+- exit           退出游戏
+- ls <name>      查看游戏或玩家
+- pwd            查看当前游戏
 
 ### 游戏操作
-raise <num>    加注 (数字部分可以使用10进制或16进制数字，也可以是数学表达式, 支持'+', '-', '*', '/', '(', ')')
-call           跟注
-fold           弃牌
-check          让牌
+- raise <num>    加注 (数字部分可以使用10进制或16进制数字，也可以是数学表达式, 支持'+', '-', '*', '/', '(', ')')
+- call           跟注
+- fold           弃牌
+- check          让牌
 
 ## 使用 websocket代理
 
