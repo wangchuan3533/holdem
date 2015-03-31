@@ -28,11 +28,20 @@
     exit(1);\
 } while (0)
 
-
-#define MAX_LINE 16384
+#define MAX_LINE 4096
 
 void do_read(evutil_socket_t fd, short events, void *arg);
 void do_write(evutil_socket_t fd, short events, void *arg);
+
+int handle(player_t *player, const char *line)
+{
+    char line_buffer[MAX_LINE];
+    g_current_player = player;
+    snprintf(line_buffer, sizeof(line_buffer), "%s\n", line);
+    yy_scan_string(line_buffer);
+    yyparse();
+    yylex_destroy();
+}
 
 void readcb(struct bufferevent *bev, void *ctx)
 {
@@ -44,13 +53,15 @@ void readcb(struct bufferevent *bev, void *ctx)
     int bid, next;
     input = bufferevent_get_input(bev);
 
-    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_LF))) {
+    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_CRLF))) {
+        handle(player, line);
         if (player->state == PLAYER_STATE_NAME) {
             snprintf(player->name, sizeof(player->name), "%s", line);
             table = available_table();
             if (table == NULL || add_player(table, player) < 0) {
                 bufferevent_free(bev);
                 memset(player, 0, sizeof(player_t));
+                return;
             }
             player->state = PLAYER_STATE_WAITING;
             if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
