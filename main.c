@@ -21,6 +21,7 @@
 #include "player.h"
 #include "table.h"
 #include "list.h"
+#include "handler.h"
 
 #define err_quit(fmt, args...) do {\
     fprintf(stderr, "[file:%s line:%d]", __FILE__, __LINE__);\
@@ -41,79 +42,17 @@ int handle(player_t *player, const char *line)
     yy_scan_string(line_buffer);
     yyparse();
     yylex_destroy();
+    return 0;
 }
 
 void readcb(struct bufferevent *bev, void *ctx)
 {
-    struct evbuffer *input;
     player_t *player = (player_t *)ctx;
-    table_t *table = player->table;
     char *line;
     size_t n;
-    int bid, next;
-    input = bufferevent_get_input(bev);
 
-    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_CRLF))) {
+    while ((line = evbuffer_readln(bufferevent_get_input(bev), &n, EVBUFFER_EOL_CRLF))) {
         handle(player, line);
-        if (player->state == PLAYER_STATE_NAME) {
-            snprintf(player->name, sizeof(player->name), "%s", line);
-            table = available_table();
-            if (table == NULL || add_player(table, player) < 0) {
-                bufferevent_free(bev);
-                memset(player, 0, sizeof(player_t));
-                return;
-            }
-            player->state = PLAYER_STATE_WAITING;
-            if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
-                table_pre_flop(table);
-            }
-            continue;
-        }
-        if (player == current_player(table) && player->state == PLAYER_STATE_GAME) {
-            next = next_player(table, table->turn);
-            if (next < 0) {
-                err_quit("next");
-            }
-            switch (line[0]) {
-            // raise
-            case 'r':
-                bid = atoi(line + 2);
-                if (player_bet(player, bid) != 0) {
-                    goto _chat;
-                }
-                table->turn = next;
-                goto _report;
-            // call
-            case 'c':
-                bid = table->bid - player->bid;
-                if (player_bet(player, bid) != 0) {
-                    goto _chat;
-                }
-                if (table->players[next]->bid == table->bid) {
-                    handle_table(table);
-                    break;
-                }
-                table->turn = next;
-                goto _report;
-            // fold
-            case 'f':
-                player_fold(player);
-                if (table_check_winner(table) < 0) {
-                    table->turn = next;
-                    goto _report;
-                }
-                break;
-            default:
-                goto _chat;
-_report:
-                report(table);
-                break;
-            }
-        } else {
-_chat:
-            broadcast(table, "[\"chat\",{\"user\":\"%s\",\"msg\":\"%s\"}]\n", player->name, line);
-        }
-        free(line);
     }
 }
 
@@ -131,7 +70,7 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
         /* must be a timeout event handle, handle it */
         /* ... */
     }
-    del_player(player->table, player);
+    logout(player);
     memset(player, 0, sizeof(player_t));
     bufferevent_free(bev);
 }
@@ -150,15 +89,13 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
     } else {
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(fd);
-        player = available_player();
+        player = player_create();
         if (player == NULL) {
             close(fd);
             return;
         }
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        player->state = PLAYER_STATE_NAME;
-        //snprintf(player->name, sizeof(player->name), "%lx", (uint64_t)player);
-        //player->state = PLAYER_STATE_WAITING;
+        player->state = PLAYER_STATE_NEW;
         player->bev = bev;
         player->bid = 0;
         player->pot = 10000;

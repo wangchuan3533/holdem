@@ -1,11 +1,12 @@
 #ifndef _TABLE_H
 #define _TABLE_H
 
+#include "uthash.h"
 #include "list.h"
 #include "card.h"
 #include "player.h"
 
-#define TABLE_MAX_PLAYERS 16
+#define TABLE_MAX_PLAYERS 10
 #define MIN_PLAYERS 3
 #define MAX_TABLES 1024
 
@@ -35,6 +36,7 @@ typedef struct table_s {
     int small_blind;
     int big_blind;
     int minimum_bet;
+    UT_hash_handle hh;
 } table_t;
 
 #define current_player(t) ((t)->players[(t)->turn])
@@ -53,11 +55,14 @@ void table_river(table_t *table);
 void table_showdown(table_t *table);
 int table_check_winner(table_t *table);
 int table_to_json(table_t *table, char *buffer, int size);
-table_t *available_table();
+
+table_t *table_create();
+void tatle_destroy(table_t *table);
+extern table_t *g_tables;
+extern int g_num_tables;
 
 void broadcast(table_t *table, const char *fmt, ...);
 void send_msg(player_t *player, const char *fmt, ...);
-int list_tables();
 
 extern char g_table_report_buffer[4096];
 #define report(table) do {\

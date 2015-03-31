@@ -6,25 +6,38 @@
 %}
 
 /* delcare token */
-%token NUMBER
-%token ADD SUB MUL DIV
-%token OP CP
-%token LS CD PWD EXIT
-%token RAISE CHECK FOLD
+%token NUMBER 
+%token ADD SUB MUL DIV OP CP
+%token LOGIN LOGOUT LS MKDIR CD PWD EXIT
+%token RAISE CALL CHECK FOLD YELL
+%token SYMBOL
 %token EOL
+%union
+{
+    int intval;
+    char *strval;
+}
+
+%type <intval> exp factor term NUMBER
+%type <strval> SYMBOL
 
 %%
 
 calclist: /* empty */
-  | calclist LS EOL { ls(); }
-  | calclist CD exp EOL { printf("cd %d\n", $3); }
-  | calclist PWD EOL { printf("pwd\n"); }
-  | calclist EXIT EOL { exit(0); }
-  | calclist RAISE exp EOL { printf("raise %d\n", $3); }
-  | calclist FOLD EOL { printf("fold\n"); }
-  | calclist CHECK EOL { printf("check\n"); }
-  | calclist exp EOL { printf("= %d\n", $2); }
-  | calclist EOL { printf(">"); }
+  | calclist LOGIN SYMBOL EOL                      { login($3); free($3); }
+  | calclist LOGOUT EOL                            { logout(); }
+  | calclist MKDIR SYMBOL EOL                      { create_table($3); free($3);}
+  | calclist CD SYMBOL EOL                         { join_table($3); free($3);}
+  | calclist EXIT EOL                              { quit_table(); }
+  | calclist LS SYMBOL EOL                         { ls($3); free($3);}
+  | calclist LS EOL                                { ls(NULL); }
+  | calclist PWD EOL                               { pwd(); }
+  | calclist RAISE exp EOL                         { raise($3); }
+  | calclist CALL EOL                              { call(); }
+  | calclist FOLD EOL                              { fold(); }
+  | calclist CHECK EOL                             { check(); }
+  | calclist exp EOL                               { printf("%d\n", $2); }
+  | calclist EOL                                   { printf("texas>"); }
   ;
 
 exp: factor
@@ -48,9 +61,3 @@ term: NUMBER
 //    yyparse();
     //yylex_destroy();
 //}
-
-int yyerror(char *s)
-{
-    fprintf(stderr, "error: %s\n", s);
-    return 0;
-}

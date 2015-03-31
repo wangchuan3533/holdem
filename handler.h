@@ -2,10 +2,20 @@
 #define _HANDLER_H
 int yylex();
 int yyerror(char *s);
-int ls();
+void yy_scan_string(const char *);
+int yyparse();
+void yylex_destroy();
+
+int login(const char *name);
+int logout();
+int create_table(const char *name);
+int join_table(const char *name);
+int quit_table();
+int ls(const char *name);
 int pwd();
 int cd();
-int raise();
+int raise(int);
+int call();
 int fold();
 int check();
 #endif
