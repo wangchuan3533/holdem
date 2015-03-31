@@ -41,7 +41,7 @@ int handle(player_t *player, const char *line)
     snprintf(line_buffer, sizeof(line_buffer), "%s\n", line);
     yy_scan_string(line_buffer);
     yyparse();
-    yylex_destroy();
+    //yylex_destroy();
     return 0;
 }
 

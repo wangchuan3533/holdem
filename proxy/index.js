@@ -46,7 +46,7 @@ io.on('connection', function (socket) {
 
     peer = net.connect({port:10000}, function() {
       console.log(username + ' connected to peer server!');
-      peer.write(username + "\n");
+      peer.write('login ' + username + "\n");
     });
     
     peer.on('data', function(resp) {
@@ -54,7 +54,7 @@ io.on('connection', function (socket) {
       for (i = 0; i < lines.length; i++) {
         if (lines[i].length) {
           socket.emit('message', {
-            username: 'game',
+            username: '',
             message: lines[i]
           });
         }

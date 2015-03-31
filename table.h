@@ -44,6 +44,7 @@ int add_player(table_t *table, player_t *player);
 int del_player(table_t *table, player_t *player);
 int next_player(table_t *table, int index);
 int player_fold(player_t *player);
+int player_check(player_t *player);
 int player_bet(player_t *player, int bid);
 
 void table_init(table_t *table);
@@ -65,9 +66,14 @@ void broadcast(table_t *table, const char *fmt, ...);
 void send_msg(player_t *player, const char *fmt, ...);
 
 extern char g_table_report_buffer[4096];
+#ifdef _USE_JSON
 #define report(table) do {\
     table_to_json((table), g_table_report_buffer, sizeof(g_table_report_buffer));\
     broadcast((table), "[\"update\",%s]\n", g_table_report_buffer);\
 } while (0)
-
+#else
+#define report(table) do {\
+    broadcast((table), "turn %s pot %d\ntexas> ", table->players[table->turn]->name, table->pot);\
+} while (0)
+#endif
 #endif
