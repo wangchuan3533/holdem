@@ -20,10 +20,14 @@ test: C_FLAGS+=-DUNIT_TEST
 test: test
 
 server : $(OBJS)
-	$(CC) $^ $(LD_FLAGS) -o $@
+	$(CC) $^ -o $@ $(LD_FLAGS)
 test : $(OBJS)
-	$(CC) $^ $(LD_FLAGS) -o $@
-%.o: %.c $(HEADERS)
+	$(CC) $^ -o $@ $(LD_FLAGS)
+%.o: %.c
+	$(CC) $(C_FLAGS) -c $< -o $@
+%.tab.o: %.tab.c
+	$(CC) $(C_FLAGS) -c $< -o $@
+%.yy.o: %.yy.c
 	$(CC) $(C_FLAGS) -c $< -o $@
 lex.yy.c : $(LEX_FILES)
 	$(LEX) $^
