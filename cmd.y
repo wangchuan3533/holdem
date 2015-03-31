@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-int yylex();
-int yyerror(char *s);
+#include "handler.h"
 %}
 
 /* delcare token */
@@ -17,7 +16,7 @@ int yyerror(char *s);
 %%
 
 calclist: /* empty */
-  | calclist LS EOL { printf("ls\n"); }
+  | calclist LS EOL { ls(); }
   | calclist CD exp EOL { printf("cd %d\n", $3); }
   | calclist PWD EOL { printf("pwd\n"); }
   | calclist EXIT EOL { exit(0); }

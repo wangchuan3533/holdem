@@ -3,10 +3,12 @@
 %}
 
 %%
-(?i:ls)     { return LS;    }
-(?i:cd)     { return CD;    }
-(?i:exit)   { return EXIT;  }
-(?i:pwd)    { return PWD;   }
+"ls"        { return LS;    }
+"mkdir"     { return MKDIR; }
+"cd"        { return CD;    }
+"exit"      { return EXIT;  }
+"pwd"       { return PWD;   }
+".."        { return PARENT;}
 (?i:raise)  { return RAISE; }
 (?i:fold)   { return FOLD;  }
 (?i:check)  { return CHECK; }
