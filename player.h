@@ -31,4 +31,6 @@ typedef struct player_s {
 
 player_t *available_player();
 int player_to_json(player_t *player, char *buffer, int size);
+int list_players();
+extern player_t *g_current_player;
 #endif
