@@ -8,6 +8,8 @@
 char g_table_report_buffer[4096];
 table_t *g_tables = NULL;
 int g_num_tables = 0;
+static struct timeval _timeout = {10, 0};
+
 
 table_t *table_create()
 {
@@ -86,6 +88,7 @@ void table_pre_flop(table_t *table)
     table->pot += table->players[table->turn]->bid;
     broadcast(table, "%s blind %d\ntexas> ", table->players[table->turn]->name, table->players[table->turn]->bid);
     table->turn = next_player(table, table->turn);
+    table_reset_timeout(table);
 
     table->bid = table->big_blind;
     report(table);
@@ -115,6 +118,7 @@ void table_flop(table_t *table)
     table->state = TABLE_STATE_FLOP;
     table->bid  = 0;
     table->turn = next_player(table, table->dealer);
+    table_reset_timeout(table);
     report(table);
 }
 
@@ -135,6 +139,7 @@ void table_turn(table_t *table)
     table->state = TABLE_STATE_TURN;
     table->bid  = 0;
     table->turn = next_player(table, table->dealer);
+    table_reset_timeout(table);
     report(table);
 }
 
@@ -155,6 +160,7 @@ void table_river(table_t *table)
     table->state = TABLE_STATE_RIVER;
     table->bid  = 0;
     table->turn = next_player(table, table->dealer);
+    table_reset_timeout(table);
     report(table);
 }
 
@@ -210,6 +216,24 @@ int table_check_winner(table_t *table)
         }
     }
     return -1;
+}
+
+int table_init_timeout(table_t *table)
+{
+    table->ev_timeout = event_new(table->base, -1, 0, timeoutcb, table);
+    return 0;
+}
+
+int table_reset_timeout(table_t *table)
+{
+    event_add(table->ev_timeout, &_timeout);
+    return 0;
+}
+
+int table_clear_timeout(table_t *table)
+{
+    event_del(table->ev_timeout);
+    return 0;
 }
 
 int table_to_json(table_t *table, char *buffer, int size)

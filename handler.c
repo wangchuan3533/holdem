@@ -39,12 +39,12 @@ int logout()
         send_msg(player, "you are not logged in\ntexas> ");
         return -1;
     }
-    HASH_FIND(hh, g_players, player->name, strlen(player->name), tmp);
-    assert(tmp == player);
-    HASH_DELETE(hh, g_players, player);
     if (player->table) {
         del_player(player->table, player);
     }
+    HASH_FIND(hh, g_players, player->name, strlen(player->name), tmp);
+    assert(tmp == player);
+    HASH_DELETE(hh, g_players, player);
     send_msg(player, "bye %s\ntexas> ", player->name);
     player->state = PLAYER_STATE_NEW;
     return 0;
@@ -74,12 +74,15 @@ int create_table(const char *name)
         send_msg(player, "table %s created failed\ntexas> ", name);
         return -1;
     }
+    table->base = bufferevent_get_base(player->bev);
+    table_init_timeout(table);
     strncpy(table->name, name, sizeof(table->name));
     HASH_ADD(hh, g_tables, name, strlen(table->name), table);
     if (add_player(table, player) < 0) {
         send_msg(player, "join table %s failed\ntexas> ", table->name);
         return -1;
     }
+
     //send_msg(player, "table %s created\ntexas> ", table->name);
     return 0;
 }
@@ -214,6 +217,7 @@ int raise(int bid)
     }
     broadcast(player->table, "%s raise %d\ntexas> ", player->name, bid);
     player->table->turn = next_player(player->table, player->table->turn);
+    table_reset_timeout(player->table);
     report(player->table);
     return 0;
 }
@@ -248,6 +252,7 @@ int call()
     }
     broadcast(player->table, "%s call %d\ntexas> ", player->name, bid);
     player->table->turn = next_player(player->table, player->table->turn);
+    table_reset_timeout(player->table);
     report(player->table);
     return 0;
 }
@@ -278,6 +283,7 @@ int fold()
     if (table_check_winner(player->table) < 0) {
         broadcast(player->table, "%s fold\ntexas> ", player->name);
         player->table->turn = next_player(player->table, player->table->turn);
+        table_reset_timeout(player->table);
         report(player->table);
     }
     return 0;
@@ -312,6 +318,7 @@ int check()
 
     broadcast(player->table, "%s check\ntexas> ", player->name);
     player->table->turn = next_player(player->table, player->table->turn);
+    table_reset_timeout(player->table);
     report(player->table);
     return 0;
 }
@@ -338,5 +345,3 @@ int reply(const char *fmt, ...)
     va_end(ap);
     return 0;
 }
-
-

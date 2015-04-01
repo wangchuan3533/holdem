@@ -3,3 +3,6 @@ server
 test
 node_modules
 tags
+*.tab.h
+*.tab.c
+*.yy.c

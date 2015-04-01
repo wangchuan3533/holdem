@@ -24,20 +24,20 @@
 %%
 
 calclist: /* empty */
-  | calclist LOGIN SYMBOL EOL                      { login($3); free($3); }
-  | calclist LOGOUT EOL                            { logout(); }
-  | calclist MK SYMBOL EOL                         { create_table($3); free($3);}
-  | calclist JOIN SYMBOL EOL                       { join_table($3); free($3);}
-  | calclist EXIT EOL                              { quit_table(); }
-  | calclist LS SYMBOL EOL                         { ls($3); free($3);}
-  | calclist LS EOL                                { ls(NULL); }
-  | calclist PWD EOL                               { pwd(); }
-  | calclist RAISE exp EOL                         { raise($3); }
-  | calclist CALL EOL                              { call(); }
-  | calclist FOLD EOL                              { fold(); }
-  | calclist CHECK EOL                             { check(); }
-  | calclist exp EOL                               { reply("%d\ntexas> ", $2); }
-  | calclist EOL                                   { reply("\ntexas> "); }
+  | calclist LOGIN SYMBOL EOL                      { login($3); free($3);              }
+  | calclist LOGOUT EOL                            { logout();                         }
+  | calclist MK SYMBOL EOL                         { create_table($3); free($3);       }
+  | calclist JOIN SYMBOL EOL                       { join_table($3); free($3);         }
+  | calclist EXIT EOL                              { quit_table();                     }
+  | calclist LS SYMBOL EOL                         { ls($3); free($3);                 }
+  | calclist LS EOL                                { ls(NULL);                         }
+  | calclist PWD EOL                               { pwd();                            }
+  | calclist RAISE exp EOL                         { raise($3);                        }
+  | calclist CALL EOL                              { call();                           }
+  | calclist FOLD EOL                              { fold();                           }
+  | calclist CHECK EOL                             { check();                          }
+  | calclist exp EOL                               { reply("%d\ntexas> ", $2);         }
+  | calclist EOL                                   { reply("\ntexas> ");               }
   ;
 
 exp: factor
@@ -55,9 +55,3 @@ term: NUMBER
   ;
 
 %%
-//int main(int argc, char **argv)
-//{
-    //yy_scan_string(line);
-//    yyparse();
-    //yylex_destroy();
-//}

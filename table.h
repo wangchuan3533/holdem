@@ -36,6 +36,8 @@ typedef struct table_s {
     int small_blind;
     int big_blind;
     int minimum_bet;
+    struct event_base *base;
+    struct event *ev_timeout;
     UT_hash_handle hh;
 } table_t;
 
@@ -55,6 +57,9 @@ void table_turn(table_t *table);
 void table_river(table_t *table);
 void table_showdown(table_t *table);
 int table_check_winner(table_t *table);
+int table_init_timeout(table_t *table);
+int table_reset_timeout(table_t *table);
+int table_clear_timeout(table_t *table);
 int table_to_json(table_t *table, char *buffer, int size);
 
 table_t *table_create();
@@ -64,7 +69,7 @@ extern int g_num_tables;
 
 void broadcast(table_t *table, const char *fmt, ...);
 void send_msg(player_t *player, const char *fmt, ...);
-
+void timeoutcb(evutil_socket_t fd, short events, void *arg);
 extern char g_table_report_buffer[4096];
 #ifdef _USE_JSON
 #define report(table) do {\

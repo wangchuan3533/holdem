@@ -70,9 +70,18 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
         /* must be a timeout event handle, handle it */
         /* ... */
     }
-    logout(player);
-    free(player);
-    bufferevent_free(bev);
+
+    handle(player, "fold");
+    handle(player, "logout");
+    //free(player);
+    //bufferevent_free(bev);
+}
+
+void timeoutcb(evutil_socket_t fd, short events, void *arg)
+{
+    table_t *table = (table_t *)arg;
+    player_t *player = table->players[table->turn];
+    handle(player, "fold");
 }
 
 void do_accept(evutil_socket_t listener, short event, void *arg)
