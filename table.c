@@ -108,7 +108,7 @@ void table_flop(table_t *table)
         }
     }
     //broadcast(table, "[\"flop\",[\"%s\",\"%s\",\"%s\"]]\n",
-    broadcast(table, "[flop] [%s,%s,%s]\ntexas> ",
+    broadcast(table, "[flop] [%s, %s, %s]\ntexas> ",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]));
@@ -131,7 +131,7 @@ void table_turn(table_t *table)
         }
     }
     //broadcast(table, "[\"turn\",[\"%s\"]]\n",card_to_string(table->community_cards[3]));
-    broadcast(table, "[turn] [%s]\ntexas> ",card_to_string(table->community_cards[3]));
+    broadcast(table, "[turn] [%s]\ntexas> ", card_to_string(table->community_cards[3]));
     table->state = TABLE_STATE_TURN;
     table->bid  = 0;
     table->turn = next_player(table, table->dealer);
@@ -150,8 +150,8 @@ void table_river(table_t *table)
             table->players[i]->hand_cards[6] = table->community_cards[4];
         }
     }
-    //broadcast(table, "[\"river\",[\"%s\"]]\n",card_to_string(table->community_cards[3]));
-    broadcast(table, "[river] [%s]\ntexas> ",card_to_string(table->community_cards[4]));
+    //broadcast(table, "[\"river\",[\"%s\"]]\n", card_to_string(table->community_cards[3]));
+    broadcast(table, "[river] [%s]\ntexas> ", card_to_string(table->community_cards[4]));
     table->state = TABLE_STATE_RIVER;
     table->bid  = 0;
     table->turn = next_player(table, table->dealer);
@@ -165,10 +165,20 @@ void table_showdown(table_t *table)
     player_t *winner;
     hand_rank_t max = {0, 0};
 
+    broadcast(table, "[showdown] community cards is [%s, %s, %s, %s, %s]\ntexas> ",
+            card_to_string(table->community_cards[0]),
+            card_to_string(table->community_cards[1]),
+            card_to_string(table->community_cards[2]),
+            card_to_string(table->community_cards[3]),
+            card_to_string(table->community_cards[4]));
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
             table->players[i]->bid = 0;
             table->players[i]->rank = calc_rank(table->players[i]->hand_cards);
+            broadcast(table, "player %s's cards is [%s, %s]. rank is [%s], score is %d\ntexas> ",
+                    table->players[i]->name, card_to_string(table->players[i]->hand_cards[0]),
+                    card_to_string(table->players[i]->hand_cards[1]), level_to_string(table->players[i]->rank.level),
+                    table->players[i]->rank.score);
             if (rank_cmp(table->players[i]->rank, max) > 0) {
                 max = table->players[i]->rank;
                 winner = table->players[i];

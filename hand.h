@@ -24,7 +24,7 @@ typedef struct  hand_rank_s {
     hand_level_t level;
     int score;
 } hand_rank_t;
+const char *level_to_string(hand_level_t);
 int rank_cmp(hand_rank_t r1, hand_rank_t r2);
-
 hand_rank_t calc_rank(hand_t hand);
 #endif

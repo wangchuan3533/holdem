@@ -13,9 +13,10 @@ int join_table(const char *name);
 int quit_table();
 int ls(const char *name);
 int pwd();
-int cd();
+int join();
 int raise(int);
 int call();
 int fold();
 int check();
+int reply(const char *fmt, ...);
 #endif

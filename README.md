@@ -27,24 +27,24 @@ make
 ## client 1
 telnet localhost 10000
 texas> login x
-texas> mkdir t
+texas> mk t
 
 ## client 2
 telnet localhost 10000
 texas> login y
-texas> cd t
+texas> join t
 
 ## client 3
 telnet localhost 10000
 texas> login z
-texas> cd t
+texas> join t
 ```
 ## 客户端命令
 ### 房间相关
 - login <name>   登录
 - logout         登出
-- mkdir <name>   新建游戏
-- cd <name>      加入游戏
+- mk <name>      新建游戏
+- join <name>      加入游戏
 - exit           退出游戏
 - ls <name>      查看游戏或玩家
 - pwd            查看当前游戏
@@ -70,3 +70,7 @@ make clean
 make test
 ./test
 ```
+
+## TODO
+
+超时设置

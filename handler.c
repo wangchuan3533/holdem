@@ -1,4 +1,8 @@
 #include <assert.h>
+#include <stdarg.h>
+#include <event2/event.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
 #include "handler.h"
 #include "card.h"
 #include "player.h"
@@ -76,7 +80,7 @@ int create_table(const char *name)
         send_msg(player, "join table %s failed\ntexas> ", table->name);
         return -1;
     }
-    send_msg(player, "table %s created\ntexas> ", table->name);
+    //send_msg(player, "table %s created\ntexas> ", table->name);
     return 0;
 }
 
@@ -103,7 +107,7 @@ int join_table(const char *name)
         send_msg(player, "join table %s failed\ntexas> ", table->name);
         return -1;
     }
-    send_msg(player, "join table %s success\ntexas> ", table->name);
+    //send_msg(player, "join table %s success\ntexas> ", table->name);
     return 0;
 }
 
@@ -315,6 +319,24 @@ int check()
 int yyerror(char *s)
 {
     player_t *player = g_current_player;
-    send_msg(player, "\ntexas> ");
+    send_msg(player, "%s\ntexas> ", s);
     return 0;
 }
+
+int reply(const char *fmt, ...)
+{
+    va_list ap;
+    player_t *player = g_current_player;
+
+    if (player->state == PLAYER_STATE_NEW) {
+        send_msg(player, "you are not logged in\ntexas> ");
+        return -1;
+    }
+
+    va_start(ap, fmt);
+    evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
+    va_end(ap);
+    return 0;
+}
+
+

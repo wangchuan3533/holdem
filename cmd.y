@@ -8,7 +8,7 @@
 /* delcare token */
 %token NUMBER 
 %token ADD SUB MUL DIV OP CP
-%token LOGIN LOGOUT LS MKDIR CD PWD EXIT
+%token LOGIN LOGOUT LS MK JOIN PWD EXIT
 %token RAISE CALL CHECK FOLD YELL
 %token SYMBOL
 %token EOL
@@ -26,8 +26,8 @@
 calclist: /* empty */
   | calclist LOGIN SYMBOL EOL                      { login($3); free($3); }
   | calclist LOGOUT EOL                            { logout(); }
-  | calclist MKDIR SYMBOL EOL                      { create_table($3); free($3);}
-  | calclist CD SYMBOL EOL                         { join_table($3); free($3);}
+  | calclist MK SYMBOL EOL                         { create_table($3); free($3);}
+  | calclist JOIN SYMBOL EOL                       { join_table($3); free($3);}
   | calclist EXIT EOL                              { quit_table(); }
   | calclist LS SYMBOL EOL                         { ls($3); free($3);}
   | calclist LS EOL                                { ls(NULL); }
@@ -36,8 +36,8 @@ calclist: /* empty */
   | calclist CALL EOL                              { call(); }
   | calclist FOLD EOL                              { fold(); }
   | calclist CHECK EOL                             { check(); }
-  | calclist exp EOL                               { printf("%d\n", $2); }
-  | calclist EOL                                   { printf("texas>"); }
+  | calclist exp EOL                               { reply("%d\ntexas> ", $2); }
+  | calclist EOL                                   { reply("\ntexas> "); }
   ;
 
 exp: factor

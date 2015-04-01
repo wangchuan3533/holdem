@@ -7,8 +7,8 @@
 %%
 "login"                     { return LOGIN; }
 "logout"                    { return LOGOUT;}
-"mkdir"                     { return MKDIR; }
-"cd"                        { return CD;    }
+"mk"                        { return MK;    }
+"join"                      { return JOIN;  }
 "exit"                      { return EXIT;  }
 "ls"                        { return LS;    }
 "pwd"                       { return PWD;   }

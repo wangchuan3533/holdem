@@ -3,6 +3,23 @@
 
 hand_rank_t _calc_rank(hand_t hand);
 unsigned int bit_count(unsigned int i);
+static const char *level_string[] = {
+    "HIGH_CARD",
+    "ONE_PAIR",
+    "TWO_PAIR",
+    "THREE_OF_A_KIND",
+    "STRAIGHT",
+    "FLUSH",
+    "FULL_HORSE",
+    "FOUR_OF_A_KIND",
+    "STRAIGHT_FLUSH",
+    "ROYAL_FLUSH",
+};
+
+const char *level_to_string(hand_level_t level)
+{
+    return level_string[level];
+}
 
 hand_rank_t calc_rank(hand_t hand)
 {
