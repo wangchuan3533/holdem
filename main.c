@@ -71,7 +71,7 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
         /* ... */
     }
     logout(player);
-    memset(player, 0, sizeof(player_t));
+    free(player);
     bufferevent_free(bev);
 }
 
