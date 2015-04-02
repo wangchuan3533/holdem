@@ -14,10 +14,10 @@ int login(const char *name)
     
     player_t *tmp, *player = g_current_player;
 
-    if (player->state != PLAYER_STATE_NEW) {
-        send_msg(player, "you already logged in\ntexas> ");
-        return -1;
-    }
+    CHECK_NOT_LOGIN(player);
+    ASSERT_NOT_TABLE(player);
+    ASSERT_NOT_GAME(player);
+
     HASH_FIND(hh, g_players, name, strlen(name), tmp);
     if (tmp) {
         send_msg(player, "name %s already exist\ntexas> ", name);
@@ -25,7 +25,7 @@ int login(const char *name)
     }
     strncpy(player->name, name, sizeof(player->name));
     HASH_ADD(hh, g_players, name, strlen(player->name), player);
-    player->state = PLAYER_STATE_LOGIN;
+    player->state |= _PLAYER_STATE_LOGIN;
     send_msg(player, "welcome to texas holdem, %s\ntexas> ", player->name);
     return 0;
 }
@@ -35,18 +35,20 @@ int logout()
     
     player_t *tmp, *player = g_current_player;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->table) {
-        del_player(player->table, player);
+    CHECK_LOGIN(player);
+
+    if (player->state & _PLAYER_STATE_TABLE) {
+        if (player->state & _PLAYER_STATE_GAME) {
+        }
+        if (player_quit(player->table, player) < 0) {
+            send_msg(player, "[FATAL] quit failed\ntexas> ");
+        }
     }
     HASH_FIND(hh, g_players, player->name, strlen(player->name), tmp);
     assert(tmp == player);
     HASH_DELETE(hh, g_players, player);
     send_msg(player, "bye %s\ntexas> ", player->name);
-    player->state = PLAYER_STATE_NEW;
+    player->state &= ~_PLAYER_STATE_LOGIN;
     return 0;
 }
 
@@ -55,14 +57,9 @@ int create_table(const char *name)
     table_t *table, *tmp;
     player_t *player = g_current_player;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->state != PLAYER_STATE_LOGIN) {
-        send_msg(player, "you are in table %s\ntexas> ", player->table->name);
-        return -1;
-    }
+    CHECK_LOGIN(player);
+    CHECK_NOT_TABLE(player);
+
     HASH_FIND(hh, g_tables, name, strlen(name), tmp);
     if (tmp) {
         send_msg(player, "table %s already exist\ntexas> ", name);
@@ -78,7 +75,7 @@ int create_table(const char *name)
     table_init_timeout(table);
     strncpy(table->name, name, sizeof(table->name));
     HASH_ADD(hh, g_tables, name, strlen(table->name), table);
-    if (add_player(table, player) < 0) {
+    if (player_join(table, player) < 0) {
         send_msg(player, "join table %s failed\ntexas> ", table->name);
         return -1;
     }
@@ -92,21 +89,16 @@ int join_table(const char *name)
     table_t *table;
     player_t *player = g_current_player;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->state != PLAYER_STATE_LOGIN) {
-        send_msg(player, "you are in table %s\ntexas> ", player->table->name);
-        return -1;
-    }
+    CHECK_LOGIN(player);
+    CHECK_NOT_TABLE(player);
+
     HASH_FIND(hh, g_tables, name, strlen(name), table);
     if (!table) {
         send_msg(player, "table %s dose not exist\ntexas> ", name);
         return -1;
     }
 
-    if (add_player(table, player) < 0) {
+    if (player_join(table, player) < 0) {
         send_msg(player, "join table %s failed\ntexas> ", table->name);
         return -1;
     }
@@ -119,16 +111,14 @@ int quit_table()
     player_t *player = g_current_player;
     table_t *table = player->table;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->state == PLAYER_STATE_LOGIN) {
-        send_msg(player, "you are not in a table\ntexas> ");
-        return -1;
-    }
+    CHECK_LOGIN(player);
+    CHCEK_TABLE(player);
 
-    if (del_player(table, player) < 0) {
+    if (in_game) {
+        if (not_folded) {
+        }
+    }
+    if (player_quit(table, player) < 0) {
         send_msg(player, "quit table %s failed\ntexas> ", table->name);
         return -1;
     }
@@ -142,10 +132,7 @@ int ls(const char *name)
     player_t *player = g_current_player;
     int i;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
+    CHECK_LOGIN(player);
     if (player->state == PLAYER_STATE_LOGIN) {
         if (name == NULL) {
             HASH_ITER(hh, g_tables, table, tmp) {
@@ -181,10 +168,8 @@ int ls(const char *name)
 int pwd()
 {
     player_t *player = g_current_player;
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
+    CHECK_LOGIN(player);
+
     if (player->state == PLAYER_STATE_LOGIN) {
         send_msg(player, "root\ntexas> ");
         return 0;
@@ -197,19 +182,11 @@ int raise(int bid)
 {
     player_t *player = g_current_player;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->state == PLAYER_STATE_LOGIN) {
-        send_msg(player, "you are not in table\ntexas> ");
-        return -1;
-    }
-
-    if (player != current_player(player->table) || player->state != PLAYER_STATE_GAME) {
-        send_msg(player, "you are not in turn\ntexas> ");
-        return -1;
-    }
+    CHECK_LOGIN(player);
+    CHECK_TABLE(player);
+    CHECK_GAME(player);
+    CHECK_NOT_FOLDED(player);
+    CHECK_IN_TURN(player);
 
     if (player_bet(player, bid) != 0) {
         send_msg(player, "raise %d failed\ntexas> ", bid);
@@ -227,19 +204,11 @@ int call()
     player_t *player = g_current_player;
     int bid;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->state == PLAYER_STATE_LOGIN) {
-        send_msg(player, "you are not in table\ntexas> ");
-        return -1;
-    }
-
-    if (player != current_player(player->table) || player->state != PLAYER_STATE_GAME) {
-        send_msg(player, "you are not in turn\ntexas> ");
-        return -1;
-    }
+    CHECK_LOGIN(player);
+    CHECK_TABLE(player);
+    CHECK_GAME(player);
+    CHECK_NOT_FOLDED(player);
+    CHECK_IN_TURN(player);
 
     bid = player->table->bid - player->bid;
     if (player_bet(player, bid) != 0) {
@@ -261,19 +230,11 @@ int fold()
 {
     player_t *player = g_current_player;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->state == PLAYER_STATE_LOGIN) {
-        send_msg(player, "you are not in table\ntexas> ");
-        return -1;
-    }
-
-    if (player != current_player(player->table) || player->state != PLAYER_STATE_GAME) {
-        send_msg(player, "you are not in turn\ntexas> ");
-        return -1;
-    }
+    CHECK_LOGIN(player);
+    CHECK_TABLE(player);
+    CHECK_GAME(player);
+    CHECK_NOT_FOLDED(player);
+    //CHECK_IN_TURN(player);
 
     if (player_fold(player) != 0) {
         send_msg(player, "fold failed\ntexas> ");

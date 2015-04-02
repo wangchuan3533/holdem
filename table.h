@@ -42,8 +42,15 @@ typedef struct table_s {
 } table_t;
 
 #define current_player(t) ((t)->players[(t)->turn])
-int add_player(table_t *table, player_t *player);
-int del_player(table_t *table, player_t *player);
+#define CHECK_IN_TURN (player) do {\
+    if ((player) != current_player((player)->table)) {\
+        send_msg((player), "you are not in turn\ntexas> ");\
+        return -1;\
+    }\
+} while(0)
+
+int player_join(table_t *table, player_t *player);
+int player_quit(table_t *table, player_t *player);
 int next_player(table_t *table, int index);
 int player_fold(player_t *player);
 int player_check(player_t *player);
@@ -51,6 +58,7 @@ int player_bet(player_t *player, int bid);
 
 void table_init(table_t *table);
 int handle_table(table_t *table);
+void table_reset(table_t *table);
 void table_pre_flop(table_t *table);
 void table_flop(table_t *table);
 void table_turn(table_t *table);

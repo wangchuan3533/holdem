@@ -10,7 +10,6 @@ table_t *g_tables = NULL;
 int g_num_tables = 0;
 static struct timeval _timeout = {10, 0};
 
-
 table_t *table_create()
 {
     table_t *table;
@@ -24,10 +23,6 @@ table_t *table_create()
     }
 
     memset(table, 0, sizeof(table_t));
-    table->small_blind = 50;
-    table->big_blind   = 100;
-    table->minimum_bet = 100;
-    table->num_playing = 0;
     g_num_tables++;
     return table;
 }
@@ -40,6 +35,30 @@ void table_destroy(table_t *table)
     }
 }
 
+void table_reset(table_t *table)
+{
+    table->state = TABLE_STATE_WAITING;
+    init_deck(&(table->deck));
+    table->pot = 0;
+    table->bid = 0;
+    table->small_blind = 50;
+    table->big_blind   = 100;
+    table->minimum_bet = 100;
+    table->num_playing = 0;
+
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+        if (table->players[i]) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
+            table->players[i]->state &= ~_PLAYER_STATE_GAME;
+            table->players[i]->state &= ~_PLAYER_STATE_FOLDED;
+            table->players[i]->bid = 0;
+            table->players[i]->rank.level = 0;
+            table->players[i]->rank.score = 0;
+        }
+    }
+}
+
 void table_pre_flop(table_t *table)
 {
     int i;
@@ -49,18 +68,13 @@ void table_pre_flop(table_t *table)
         return;
     }
 
-    init_deck(&(table->deck));
     for (i = 0, table->num_playing = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]
-                && (table->players[i]->state == PLAYER_STATE_FOLDED
-                    || table->players[i]->state == PLAYER_STATE_GAME
-                    || table->players[i]->state == PLAYER_STATE_WAITING)) {
-            table->players[i]->state = PLAYER_STATE_GAME;
+        if (table->players[i]) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
+            table->players[i]->state |= _PLAYER_STATE_GAME;
             table->players[i]->hand_cards[0] = get_card(&table->deck);
             table->players[i]->hand_cards[1] = get_card(&table->deck);
-            table->players[i]->bid = 0;
-            table->players[i]->rank.level = 0;
-            table->players[i]->rank.score = 0;
             table->num_playing++;
             //send_msg(table->players[i], "[\"pre_flop\",[\"%s\",\"%s\"]]\n",
             send_msg(table->players[i], "[pre_flop] [%s, %s]\ntexas> ",
@@ -70,8 +84,6 @@ void table_pre_flop(table_t *table)
     }
 
     table->state = TABLE_STATE_PREFLOP;
-    table->pot = 0;
-    table->bid = 0;
     table->dealer = next_player(table, table->dealer);
     table->turn = next_player(table, table->dealer);
 
@@ -103,7 +115,9 @@ void table_flop(table_t *table)
     table->community_cards[2] = get_card(&table->deck);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
+        if (table->players[i]) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
             table->players[i]->bid = 0;
             table->players[i]->hand_cards[2] = table->community_cards[0];
             table->players[i]->hand_cards[3] = table->community_cards[1];
@@ -129,7 +143,9 @@ void table_turn(table_t *table)
     table->community_cards[3] = get_card(&table->deck);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
+        if (table->players[i]) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
             table->players[i]->bid = 0;
             table->players[i]->hand_cards[5] = table->community_cards[3];
         }
@@ -150,7 +166,9 @@ void table_river(table_t *table)
     table->community_cards[4] = get_card(&table->deck);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
+        if (table->players[i]) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
             table->players[i]->bid = 0;
             table->players[i]->hand_cards[6] = table->community_cards[4];
         }
@@ -178,7 +196,9 @@ void table_showdown(table_t *table)
             card_to_string(table->community_cards[3]),
             card_to_string(table->community_cards[4]));
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
+        if (table->players[i]) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
             table->players[i]->bid = 0;
             table->players[i]->rank = calc_rank(table->players[i]->hand_cards);
             broadcast(table, "player %s's cards is [%s, %s]. rank is [%s], score is %d\ntexas> ",
@@ -196,6 +216,7 @@ void table_showdown(table_t *table)
     broadcast(table, "[winner] %s [pot] %d\ntexas> ", winner->name, table->pot);
     winner->pot += table->pot;
     table->pot = 0;
+    table_reset(table);
     table_pre_flop(table);
 }
 
@@ -205,11 +226,13 @@ int table_check_winner(table_t *table)
 
     if (table->num_playing == 1) {
         for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-            if (table->players[i] && table->players[i]->state == PLAYER_STATE_GAME) {
+            if (table->players[i] && (table->players[i]->state & _PLAYER_STATE_GAME) && (!(table->players[i]->state & _PLAYER_STATE_FOLDED))) {
+                ASSERT_LOGIN(table->players[i]);
+                ASSERT_TABLE(table->players[i]);
                 //broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
                 broadcast(table, "[winner] %s [pot] %d\ntexas> ", table->players[i]->name, table->pot);
                 table->players[i]->pot += table->pot;
-                table->pot = 0;
+                table_reset(table);
                 table_pre_flop(table);
                 return 0;
             }
@@ -292,28 +315,21 @@ void broadcast(table_t *table, const char *fmt, ...)
     va_end(ap);
     va_start(ap, fmt);
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]
-                && (table->players[i]->state == PLAYER_STATE_FOLDED
-                    || table->players[i]->state == PLAYER_STATE_GAME
-                    || table->players[i]->state == PLAYER_STATE_WAITING)) {
+        if (table->players[i]) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
             evbuffer_add_vprintf(bufferevent_get_output(table->players[i]->bev), fmt, ap);
         }
     }
     va_end(ap);
 }
 
-void send_msg(player_t *player, const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
-    va_end(ap);
-}
-
-int add_player(table_t *table, player_t *player)
+int player_join(table_t *table, player_t *player)
 {
     int i;
 
+    ASSERT_LOGIN(player);
+    ASSERT_NOT_TABLE(player);
     if (table->num_players >= TABLE_MAX_PLAYERS) {
         return -1;
     }
@@ -321,11 +337,12 @@ int add_player(table_t *table, player_t *player)
         if (table->players[i] == NULL) {
             table->players[i] = player;
             player->table = table;
-            player->state = PLAYER_STATE_WAITING;
+            player->state |= _PLAYER_STATE_TABLE;
             table->num_players++;
             //broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
             broadcast(table, "%s joined\ntexas> ", player->name);
             if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
+                table_reset(table);
                 table_pre_flop(table);
             }
             return 0;
@@ -335,19 +352,20 @@ int add_player(table_t *table, player_t *player)
     return -1;
 }
 
-
-int del_player(table_t *table, player_t *player)
+int player_quit(table_t *table, player_t *player)
 {
     int i;
-    if (player->state == PLAYER_STATE_GAME) {
-        player_fold(player);
-    }
+
+    ASSERT_LOGIN(player);
+    ASSERT_TABLE(player);
+    ASSERT_NOT_GAME(player);
+
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i] == player) {
             table->num_players--;
             table->players[i] = NULL;
             player->table = NULL;
-            player->state = PLAYER_STATE_LOGIN;
+            player->state &= ~_PLAYER_STATE_TABLE;
             return 0;
         }
     }
@@ -358,9 +376,11 @@ int del_player(table_t *table, player_t *player)
 int next_player(table_t *table, int index)
 {
     int i, next;
+
     for (i = 1; i < TABLE_MAX_PLAYERS; i++) {
         next = (index + i) % TABLE_MAX_PLAYERS;
-        if (table->players[next] && table->players[next]->state == PLAYER_STATE_GAME) {
+        if (table->players[next] && (table->players[next]->state & _PLAYER_STATE_GAME) && (!(table->players[next]->state & _PLAYER_STATE_FOLDED))) {
+            ASSERT_LOGIN(table->players[next]);
             return next;
         }
     }
@@ -370,6 +390,10 @@ int next_player(table_t *table, int index)
 
 int player_bet(player_t *player, int bid)
 {
+    ASSERT_LOGIN(player);
+    ASSERT_TABLE(player);
+    ASSERT_GAME(player);
+    ASSERT_NOT_FOLDED(player);
     if (bid + player->bid < player->table->minimum_bet) {
         return -1;
     }
@@ -388,8 +412,12 @@ int player_bet(player_t *player, int bid)
 
 int player_fold(player_t *player)
 {
+    ASSERT_LOGIN(player);
+    ASSERT_TABLE(player);
+    ASSERT_GAME(player);
+    ASSERT_NOT_FOLDED(player);
 
-    player->state = PLAYER_STATE_FOLDED;
+    player->state &= _PLAYER_STATE_FOLDED;
     player->bid = 0;
     player->table->num_playing--;
     return 0;
@@ -397,6 +425,11 @@ int player_fold(player_t *player)
 
 int player_check(player_t *player)
 {
+    ASSERT_LOGIN(player);
+    ASSERT_TABLE(player);
+    ASSERT_GAME(player);
+    ASSERT_NOT_FOLDED(player);
+
     if (player->table->bid != 0) {
         send_msg(player, "check failed\ntexas> ");
         return -1;
@@ -405,11 +438,11 @@ int player_check(player_t *player)
     return 0;
 }
 
-
 int handle_table(table_t *table)
 {
     switch (table->state) {
     case TABLE_STATE_WAITING:
+        table_reset(table);
         table_pre_flop(table);
         break;
     case TABLE_STATE_PREFLOP:

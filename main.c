@@ -37,6 +37,8 @@ void do_write(evutil_socket_t fd, short events, void *arg);
 int handle(player_t *player, const char *line)
 {
     char line_buffer[MAX_LINE];
+
+    assert(player != NULL);
     g_current_player = player;
     snprintf(line_buffer, sizeof(line_buffer), "%s\n", line);
     yy_scan_string(line_buffer);
@@ -104,10 +106,7 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
             return;
         }
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        player->state = PLAYER_STATE_NEW;
         player->bev = bev;
-        player->bid = 0;
-        player->pot = 10000;
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);

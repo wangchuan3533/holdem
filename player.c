@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "player.h"
 player_t *g_current_player;
 player_t *g_players = NULL;
@@ -17,6 +18,7 @@ player_t *player_create()
         return NULL;
     }
     memset(player, 0, sizeof(player_t));
+    player->pot = 10000;
     g_num_players++;
     return player;
 }
@@ -27,6 +29,14 @@ void player_destroy(player_t *player)
         g_num_players--;
         free(player);
     }
+}
+
+void send_msg(player_t *player, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
+    va_end(ap);
 }
 
 int player_to_json(player_t *player, char *buffer, int size)
