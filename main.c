@@ -73,8 +73,9 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
 
     handle(player, "fold");
     handle(player, "logout");
+    player_destroy(player);
     //free(player);
-    //bufferevent_free(bev);
+    bufferevent_free(bev);
 }
 
 void timeoutcb(evutil_socket_t fd, short events, void *arg)
