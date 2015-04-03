@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 /* For fcntl */
 #include <fcntl.h>
+#include <signal.h>
 
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -120,10 +121,7 @@ void run(void)
     struct event_base *base;
     struct event *listener_event;
 
-    base = event_base_new();
-    if (!base)
-        return; /*XXXerr*/
-
+    assert(base = event_base_new());
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = 0;
     sin.sin_port = htons(10000);
@@ -159,6 +157,7 @@ void run(void)
 int main(int c, char **v)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
+    signal(SIGPIPE, SIG_IGN);
 
     run();
     return 0;

@@ -41,12 +41,13 @@ texas> join t
 ```
 ## 客户端命令
 ### 房间相关
-- login <name>   登录
-- logout         登出
-- mk <name>      新建游戏
-- join <name>      加入游戏
-- exit           退出游戏
-- ls <name>      查看游戏或玩家
+- login user_name     登录
+- logout              登出
+- mk table_name       新建游戏
+- join table_name     加入游戏
+- exit                退出游戏
+- show tables         查看游戏
+- show players        查看游戏
 - pwd            查看当前游戏
 
 ### 游戏操作
@@ -72,5 +73,7 @@ make test
 ```
 
 ## TODO
-
-超时设置
+- pre_flop时大盲注check进入翻牌
+- all in
+- side-pot
+- chat

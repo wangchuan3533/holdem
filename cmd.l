@@ -20,6 +20,7 @@
 "fold"                      { return FOLD;                                              }
 "check"                     { return CHECK;                                             }
 "yell"                      { return YELL;                                              }
+"help"                      { return HELP;                                              }
 "+"                         { return ADD;                                               }
 "-"                         { return SUB;                                               }
 "*"                         { return MUL;                                               }

@@ -32,18 +32,12 @@ int login(const char *name)
 
 int logout()
 {
-    
     player_t *tmp, *player = g_current_player;
 
     CHECK_LOGIN(player);
 
     if (player->state & PLAYER_STATE_TABLE) {
-        if (player->state & PLAYER_STATE_GAME) {
-            if (!(player->state & PLAYER_STATE_FOLDED)) {
-                assert(player_fold(player) == 0);
-            }
-        }
-        assert (player_quit(player) == 0);
+        assert(quit_table() == 0);
     }
     HASH_FIND(hh, g_players, player->name, strlen(player->name), tmp);
     assert(tmp == player);
@@ -81,6 +75,7 @@ int create_table(const char *name)
         return -1;
     }
 
+    table_reset(table);
     //send_msg(player, "table %s created\ntexas> ", table->name);
     return 0;
 }
@@ -103,6 +98,10 @@ int join_table(const char *name)
         send_msg(player, "join table %s failed\ntexas> ", table->name);
         return -1;
     }
+
+    if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
+        handle_table(table);
+    }
     //send_msg(player, "join table %s success\ntexas> ", table->name);
     return 0;
 }
@@ -116,9 +115,7 @@ int quit_table()
     CHECK_TABLE(player);
 
     if (player->state & PLAYER_STATE_GAME) {
-        if (!(player->state & PLAYER_STATE_FOLDED)) {
-            assert(player_fold(player) == 0);
-        }
+        fold();
     }
     assert(player_quit(player) == 0);
     send_msg(player, "quit table %s success\ntexas> ", table->name);
@@ -189,7 +186,6 @@ int raise(int bid)
     CHECK_LOGIN(player);
     CHECK_TABLE(player);
     CHECK_GAME(player);
-    CHECK_NOT_FOLDED(player);
     CHECK_IN_TURN(player);
 
     if (player_bet(player, bid) != 0) {
@@ -211,7 +207,6 @@ int call()
     CHECK_LOGIN(player);
     CHECK_TABLE(player);
     CHECK_GAME(player);
-    CHECK_NOT_FOLDED(player);
     CHECK_IN_TURN(player);
 
     bid = player->table->bid - player->bid;
@@ -237,20 +232,21 @@ int fold()
     CHECK_LOGIN(player);
     CHECK_TABLE(player);
     CHECK_GAME(player);
-    CHECK_NOT_FOLDED(player);
     //CHECK_IN_TURN(player);
 
-    if (player_fold(player) != 0) {
-        send_msg(player, "fold failed\ntexas> ");
-        return -1;
+    assert(player_fold(player) == 0);
+    broadcast(player->table, "%s fold\ntexas> ", player->name);
+    if (player->table->num_playing == 1) {
+        assert(table_check_winner(player->table) == 0);
+        handle_table(player->table);
+        return 0;
     }
 
-    if (table_check_winner(player->table) < 0) {
-        broadcast(player->table, "%s fold\ntexas> ", player->name);
+    if (current_player(player->table) == player) {
         player->table->turn = next_player(player->table, player->table->turn);
         table_reset_timeout(player->table);
-        report(player->table);
     }
+    report(player->table);
     return 0;
 }
 
@@ -261,7 +257,6 @@ int check()
     CHECK_LOGIN(player);
     CHECK_TABLE(player);
     CHECK_GAME(player);
-    CHECK_NOT_FOLDED(player);
     CHECK_IN_TURN(player);
 
     if (player_check(player) < 0) {
@@ -303,7 +298,7 @@ int print_help()
         "help\n"
     ;
 
-    evbuffer_add_printf(bufferevent_get_output(player->bev), usage);
+    evbuffer_add_printf(bufferevent_get_output(player->bev), "%s\ntexas> ", usage);
     return 0;
 }
 

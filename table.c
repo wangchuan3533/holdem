@@ -53,7 +53,6 @@ void table_reset(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             table->players[i]->state &= ~PLAYER_STATE_GAME;
-            table->players[i]->state &= ~PLAYER_STATE_FOLDED;
             table->players[i]->bid = 0;
             table->players[i]->rank.level = 0;
             table->players[i]->rank.score = 0;
@@ -66,7 +65,6 @@ void table_pre_flop(table_t *table)
     int i;
 
     if (table->num_players < MIN_PLAYERS) {
-        table->state = TABLE_STATE_WAITING;
         return;
     }
 
@@ -219,25 +217,21 @@ void table_showdown(table_t *table)
     winner->pot += table->pot;
     table->pot = 0;
     table_reset(table);
-    table_pre_flop(table);
 }
 
 int table_check_winner(table_t *table)
 {
     int i;
 
-    if (table->num_playing == 1) {
-        for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-            if (table->players[i] && (table->players[i]->state & PLAYER_STATE_GAME) && (!(table->players[i]->state & PLAYER_STATE_FOLDED))) {
-                ASSERT_LOGIN(table->players[i]);
-                ASSERT_TABLE(table->players[i]);
-                //broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
-                broadcast(table, "[winner] %s [pot] %d\ntexas> ", table->players[i]->name, table->pot);
-                table->players[i]->pot += table->pot;
-                table_reset(table);
-                table_pre_flop(table);
-                return 0;
-            }
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+        if (table->players[i] && (table->players[i]->state & PLAYER_STATE_GAME)) {
+            ASSERT_LOGIN(table->players[i]);
+            ASSERT_TABLE(table->players[i]);
+            //broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
+            broadcast(table, "[winner] %s [pot] %d\ntexas> ", table->players[i]->name, table->pot);
+            table->players[i]->pot += table->pot;
+            table_reset(table);
+            return 0;
         }
     }
     return -1;
@@ -289,7 +283,6 @@ int table_to_json(table_t *table, char *buffer, int size)
                 table->community_cards[3]);
         break;
     case TABLE_STATE_RIVER:
-    case TABLE_STATE_SHOWDOWN:
         snprintf(cards_buffer, sizeof(cards_buffer), "%d,%d,%d,%d,%d",
                 table->community_cards[0],
                 table->community_cards[1],
@@ -343,10 +336,6 @@ int player_join(table_t *table, player_t *player)
             table->num_players++;
             //broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
             broadcast(table, "%s joined\ntexas> ", player->name);
-            if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
-                table_reset(table);
-                table_pre_flop(table);
-            }
             return 0;
         }
     }
@@ -381,7 +370,7 @@ int next_player(table_t *table, int index)
 
     for (i = 1; i < TABLE_MAX_PLAYERS; i++) {
         next = (index + i) % TABLE_MAX_PLAYERS;
-        if (table->players[next] && (table->players[next]->state & PLAYER_STATE_GAME) && (!(table->players[next]->state & PLAYER_STATE_FOLDED))) {
+        if (table->players[next] && (table->players[next]->state & PLAYER_STATE_GAME)) {
             ASSERT_LOGIN(table->players[next]);
             return next;
         }
@@ -395,7 +384,6 @@ int player_bet(player_t *player, int bid)
     ASSERT_LOGIN(player);
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
-    ASSERT_NOT_FOLDED(player);
     if (bid + player->bid < player->table->minimum_bet) {
         return -1;
     }
@@ -417,9 +405,8 @@ int player_fold(player_t *player)
     ASSERT_LOGIN(player);
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
-    ASSERT_NOT_FOLDED(player);
 
-    player->state &= PLAYER_STATE_FOLDED;
+    player->state &= ~PLAYER_STATE_GAME;
     player->bid = 0;
     player->table->num_playing--;
     return 0;
@@ -430,9 +417,8 @@ int player_check(player_t *player)
     ASSERT_LOGIN(player);
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
-    ASSERT_NOT_FOLDED(player);
 
-    if (player->table->bid != 0) {
+    if (player->table->bid > player->bid) {
         send_msg(player, "check failed\ntexas> ");
         return -1;
     }
@@ -444,7 +430,6 @@ int handle_table(table_t *table)
 {
     switch (table->state) {
     case TABLE_STATE_WAITING:
-        table_reset(table);
         table_pre_flop(table);
         break;
     case TABLE_STATE_PREFLOP:

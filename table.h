@@ -16,8 +16,6 @@ typedef enum table_state_e {
     TABLE_STATE_FLOP,
     TABLE_STATE_TURN,
     TABLE_STATE_RIVER,
-    TABLE_STATE_SHOWDOWN,
-    TABLE_STATE_FINISHED,
 } table_state_t;
 
 typedef struct table_s {
@@ -56,8 +54,6 @@ int next_player(table_t *table, int index);
 int player_fold(player_t *player);
 int player_check(player_t *player);
 int player_bet(player_t *player, int bid);
-
-void table_init(table_t *table);
 int handle_table(table_t *table);
 void table_reset(table_t *table);
 void table_pre_flop(table_t *table);

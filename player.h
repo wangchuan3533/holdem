@@ -12,7 +12,6 @@ struct table_s;
 #define PLAYER_STATE_LOGIN     0x01
 #define PLAYER_STATE_TABLE     0x02
 #define PLAYER_STATE_GAME      0x04
-#define PLAYER_STATE_FOLDED    0x08
 
 typedef unsigned int player_state_t;
 
@@ -35,8 +34,6 @@ typedef struct player_s {
 #define ASSERT_NOT_TABLE(player)     assert(!((player)->state & PLAYER_STATE_TABLE))
 #define ASSERT_GAME(player)          assert((player)->state & PLAYER_STATE_GAME)
 #define ASSERT_NOT_GAME(player)      assert(!((player)->state & PLAYER_STATE_GAME))
-#define ASSERT_FOLDED(player)        assert((player)->state & PLAYER_STATE_FOLDED)
-#define ASSERT_NOT_FOLDED(player)    assert(!((player)->state & PLAYER_STATE_FOLDED))
 #else
 #define ASSERT_LOGIN(player)
 #define ASSERT_NOT_LOGIN(player)
@@ -44,8 +41,6 @@ typedef struct player_s {
 #define ASSERT_NOT_TABLE(player)
 #define ASSERT_GAME(player)
 #define ASSERT_NOT_GAME(player)
-#define ASSERT_FOLDED(player)
-#define ASSERT_NOT_FOLDED(player)
 #endif
 
 #define CHECK_LOGIN(player) do {\
@@ -86,20 +81,6 @@ typedef struct player_s {
 #define CHECK_NOT_GAME(player) do {\
     if ((player)->state & PLAYER_STATE_GAME) {\
         send_msg((player), "you are already in game\ntexas> ");\
-        return -1;\
-    }\
-} while(0)
-
-#define CHECK_FOLDED(player) do {\
-    if (!((player)->state & PLAYER_STATE_FOLDED)) {\
-        send_msg((player), "you are not folded\ntexas> ");\
-        return -1;\
-    }\
-} while(0)
-
-#define CHECK_NOT_FOLDED(player) do {\
-    if ((player)->state & PLAYER_STATE_FOLDED) {\
-        send_msg((player), "you are already folded\ntexas> ");\
         return -1;\
     }\
 } while(0)
