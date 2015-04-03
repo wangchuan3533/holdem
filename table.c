@@ -3,6 +3,7 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "table.h"
 
 char g_table_report_buffer[4096];
