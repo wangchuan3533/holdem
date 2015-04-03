@@ -37,6 +37,8 @@ void table_destroy(table_t *table)
 
 void table_reset(table_t *table)
 {
+    int i;
+
     table->state = TABLE_STATE_WAITING;
     init_deck(&(table->deck));
     table->pot = 0;
@@ -50,8 +52,8 @@ void table_reset(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            table->players[i]->state &= ~_PLAYER_STATE_GAME;
-            table->players[i]->state &= ~_PLAYER_STATE_FOLDED;
+            table->players[i]->state &= ~PLAYER_STATE_GAME;
+            table->players[i]->state &= ~PLAYER_STATE_FOLDED;
             table->players[i]->bid = 0;
             table->players[i]->rank.level = 0;
             table->players[i]->rank.score = 0;
@@ -72,7 +74,7 @@ void table_pre_flop(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            table->players[i]->state |= _PLAYER_STATE_GAME;
+            table->players[i]->state |= PLAYER_STATE_GAME;
             table->players[i]->hand_cards[0] = get_card(&table->deck);
             table->players[i]->hand_cards[1] = get_card(&table->deck);
             table->num_playing++;
@@ -226,7 +228,7 @@ int table_check_winner(table_t *table)
 
     if (table->num_playing == 1) {
         for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-            if (table->players[i] && (table->players[i]->state & _PLAYER_STATE_GAME) && (!(table->players[i]->state & _PLAYER_STATE_FOLDED))) {
+            if (table->players[i] && (table->players[i]->state & PLAYER_STATE_GAME) && (!(table->players[i]->state & PLAYER_STATE_FOLDED))) {
                 ASSERT_LOGIN(table->players[i]);
                 ASSERT_TABLE(table->players[i]);
                 //broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
@@ -337,7 +339,7 @@ int player_join(table_t *table, player_t *player)
         if (table->players[i] == NULL) {
             table->players[i] = player;
             player->table = table;
-            player->state |= _PLAYER_STATE_TABLE;
+            player->state |= PLAYER_STATE_TABLE;
             table->num_players++;
             //broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
             broadcast(table, "%s joined\ntexas> ", player->name);
@@ -352,7 +354,7 @@ int player_join(table_t *table, player_t *player)
     return -1;
 }
 
-int player_quit(table_t *table, player_t *player)
+int player_quit(player_t *player)
 {
     int i;
 
@@ -361,11 +363,11 @@ int player_quit(table_t *table, player_t *player)
     ASSERT_NOT_GAME(player);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i] == player) {
-            table->num_players--;
-            table->players[i] = NULL;
+        if (player->table->players[i] == player) {
+            player->table->num_players--;
+            player->table->players[i] = NULL;
             player->table = NULL;
-            player->state &= ~_PLAYER_STATE_TABLE;
+            player->state &= ~PLAYER_STATE_TABLE;
             return 0;
         }
     }
@@ -379,7 +381,7 @@ int next_player(table_t *table, int index)
 
     for (i = 1; i < TABLE_MAX_PLAYERS; i++) {
         next = (index + i) % TABLE_MAX_PLAYERS;
-        if (table->players[next] && (table->players[next]->state & _PLAYER_STATE_GAME) && (!(table->players[next]->state & _PLAYER_STATE_FOLDED))) {
+        if (table->players[next] && (table->players[next]->state & PLAYER_STATE_GAME) && (!(table->players[next]->state & PLAYER_STATE_FOLDED))) {
             ASSERT_LOGIN(table->players[next]);
             return next;
         }
@@ -417,7 +419,7 @@ int player_fold(player_t *player)
     ASSERT_GAME(player);
     ASSERT_NOT_FOLDED(player);
 
-    player->state &= _PLAYER_STATE_FOLDED;
+    player->state &= PLAYER_STATE_FOLDED;
     player->bid = 0;
     player->table->num_playing--;
     return 0;

@@ -25,7 +25,7 @@ int login(const char *name)
     }
     strncpy(player->name, name, sizeof(player->name));
     HASH_ADD(hh, g_players, name, strlen(player->name), player);
-    player->state |= _PLAYER_STATE_LOGIN;
+    player->state |= PLAYER_STATE_LOGIN;
     send_msg(player, "welcome to texas holdem, %s\ntexas> ", player->name);
     return 0;
 }
@@ -37,18 +37,19 @@ int logout()
 
     CHECK_LOGIN(player);
 
-    if (player->state & _PLAYER_STATE_TABLE) {
-        if (player->state & _PLAYER_STATE_GAME) {
+    if (player->state & PLAYER_STATE_TABLE) {
+        if (player->state & PLAYER_STATE_GAME) {
+            if (!(player->state & PLAYER_STATE_FOLDED)) {
+                assert(player_fold(player) == 0);
+            }
         }
-        if (player_quit(player->table, player) < 0) {
-            send_msg(player, "[FATAL] quit failed\ntexas> ");
-        }
+        assert (player_quit(player) == 0);
     }
     HASH_FIND(hh, g_players, player->name, strlen(player->name), tmp);
     assert(tmp == player);
     HASH_DELETE(hh, g_players, player);
     send_msg(player, "bye %s\ntexas> ", player->name);
-    player->state &= ~_PLAYER_STATE_LOGIN;
+    player->state &= ~PLAYER_STATE_LOGIN;
     return 0;
 }
 
@@ -112,53 +113,57 @@ int quit_table()
     table_t *table = player->table;
 
     CHECK_LOGIN(player);
-    CHCEK_TABLE(player);
+    CHECK_TABLE(player);
 
-    if (in_game) {
-        if (not_folded) {
+    if (player->state & PLAYER_STATE_GAME) {
+        if (!(player->state & PLAYER_STATE_FOLDED)) {
+            assert(player_fold(player) == 0);
         }
     }
-    if (player_quit(table, player) < 0) {
-        send_msg(player, "quit table %s failed\ntexas> ", table->name);
-        return -1;
-    }
+    assert(player_quit(player) == 0);
     send_msg(player, "quit table %s success\ntexas> ", table->name);
     return 0;
 }
 
-int ls(const char *name)
+int show_tables()
 {
+    player_t *player = g_current_player;
     table_t *table, *tmp;
+
+    CHECK_LOGIN(player);
+    HASH_ITER(hh, g_tables, table, tmp) {
+        send_msg(player, "%s ", table->name);
+    }
+    send_msg(player, "\ntexas> ");
+    return 0;
+}
+
+int show_players()
+{
+    player_t *tmp1, *tmp2, *player = g_current_player;
+
+    HASH_ITER(hh, g_players, tmp1, tmp2) {
+        send_msg(player, "%s ", tmp1->name);
+    }
+    send_msg(player, "\ntexas> ");
+    return 0;
+}
+
+int show_players_in_table(const char *name)
+{
+    table_t *table;
     player_t *player = g_current_player;
     int i;
 
     CHECK_LOGIN(player);
-    if (player->state == PLAYER_STATE_LOGIN) {
-        if (name == NULL) {
-            HASH_ITER(hh, g_tables, table, tmp) {
-                send_msg(player, "%s ", table->name);
-            }
-            send_msg(player, "\ntexas> ");
-            return 0;
-        }
-
-        HASH_FIND(hh, g_tables, name, strlen(name), table);
-        if (!table) {
-            send_msg(player, "table %s dose not exist\ntexas> ", name);
-            return -1;
-        }
-        for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-            if (table->players[i]) {
-                send_msg(player, "%s ", table->players[i]->name);
-            }
-        }
-        send_msg(player, "\ntexas> ");
-        return 0;
+    HASH_FIND(hh, g_tables, name, strlen(name), table);
+    if (!table) {
+        send_msg(player, "table %s dose not exist\ntexas> ", name);
+        return -1;
     }
-
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (player->table->players[i]) {
-            send_msg(player, "%s ", player->table->players[i]->name);
+        if (table->players[i]) {
+            send_msg(player, "%s ", table->players[i]->name);
         }
     }
     send_msg(player, "\ntexas> ");
@@ -168,13 +173,12 @@ int ls(const char *name)
 int pwd()
 {
     player_t *player = g_current_player;
-    CHECK_LOGIN(player);
 
-    if (player->state == PLAYER_STATE_LOGIN) {
-        send_msg(player, "root\ntexas> ");
+    if (player->state & PLAYER_STATE_TABLE) {
+        send_msg(player, "%s\ntexas> ", player->table->name);
         return 0;
     }
-    send_msg(player, "%s\ntexas> ", player->table->name);
+    send_msg(player, "root\ntexas> ");
     return 0;
 }
 
@@ -254,21 +258,13 @@ int check()
 {
     player_t *player = g_current_player;
 
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
-    if (player->state == PLAYER_STATE_LOGIN) {
-        send_msg(player, "you are not in table\ntexas> ");
-        return -1;
-    }
+    CHECK_LOGIN(player);
+    CHECK_TABLE(player);
+    CHECK_GAME(player);
+    CHECK_NOT_FOLDED(player);
+    CHECK_IN_TURN(player);
 
-    if (player != current_player(player->table) || player->state != PLAYER_STATE_GAME) {
-        send_msg(player, "you are not in turn\ntexas> ");
-        return -1;
-    }
-
-    if (player_check(player) != 0) {
+    if (player_check(player) < 0) {
         send_msg(player, "check failed\ntexas> ");
         return -1;
     }
@@ -291,15 +287,30 @@ int yyerror(char *s)
     return 0;
 }
 
+int print_help()
+{
+    player_t *player = g_current_player;
+    const char *usage =
+        "login <user_name>\n"
+        "logout\n"
+        "mk <table_name>\n"
+        "join <table_name>\n"
+        "quit\n"
+        "raise <num>\n"
+        "call\n"
+        "check\n"
+        "fold\n"
+        "help\n"
+    ;
+
+    evbuffer_add_printf(bufferevent_get_output(player->bev), usage);
+    return 0;
+}
+
 int reply(const char *fmt, ...)
 {
     va_list ap;
     player_t *player = g_current_player;
-
-    if (player->state == PLAYER_STATE_NEW) {
-        send_msg(player, "you are not logged in\ntexas> ");
-        return -1;
-    }
 
     va_start(ap, fmt);
     evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);

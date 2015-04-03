@@ -1,6 +1,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <event2/event.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
 #include "player.h"
 player_t *g_current_player;
 player_t *g_players = NULL;

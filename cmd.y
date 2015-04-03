@@ -8,7 +8,7 @@
 /* delcare token */
 %token NUMBER 
 %token ADD SUB MUL DIV OP CP
-%token LOGIN LOGOUT LS MK JOIN PWD EXIT
+%token LOGIN LOGOUT SHOW TABLES PLAYERS IN MK JOIN PWD EXIT HELP
 %token RAISE CALL CHECK FOLD YELL
 %token SYMBOL
 %token EOL
@@ -29,13 +29,15 @@ calclist: /* empty */
   | calclist MK SYMBOL EOL                         { create_table($3); free($3);       }
   | calclist JOIN SYMBOL EOL                       { join_table($3); free($3);         }
   | calclist EXIT EOL                              { quit_table();                     }
-  | calclist LS SYMBOL EOL                         { ls($3); free($3);                 }
-  | calclist LS EOL                                { ls(NULL);                         }
+  | calclist SHOW TABLES EOL                       { show_tables();                    }
+  | calclist SHOW PLAYERS EOL                      { show_players();                   }
+  | calclist SHOW PLAYERS IN SYMBOL EOL            { show_players_in_table($5);        }
   | calclist PWD EOL                               { pwd();                            }
   | calclist RAISE exp EOL                         { raise($3);                        }
   | calclist CALL EOL                              { call();                           }
   | calclist FOLD EOL                              { fold();                           }
   | calclist CHECK EOL                             { check();                          }
+  | calclist HELP EOL                              { print_help();                     }
   | calclist exp EOL                               { reply("%d\ntexas> ", $2);         }
   | calclist EOL                                   { reply("\ntexas> ");               }
   ;

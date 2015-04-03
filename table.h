@@ -17,6 +17,7 @@ typedef enum table_state_e {
     TABLE_STATE_TURN,
     TABLE_STATE_RIVER,
     TABLE_STATE_SHOWDOWN,
+    TABLE_STATE_FINISHED,
 } table_state_t;
 
 typedef struct table_s {
@@ -42,7 +43,7 @@ typedef struct table_s {
 } table_t;
 
 #define current_player(t) ((t)->players[(t)->turn])
-#define CHECK_IN_TURN (player) do {\
+#define CHECK_IN_TURN(player) do {\
     if ((player) != current_player((player)->table)) {\
         send_msg((player), "you are not in turn\ntexas> ");\
         return -1;\
@@ -50,7 +51,7 @@ typedef struct table_s {
 } while(0)
 
 int player_join(table_t *table, player_t *player);
-int player_quit(table_t *table, player_t *player);
+int player_quit(player_t *player);
 int next_player(table_t *table, int index);
 int player_fold(player_t *player);
 int player_check(player_t *player);

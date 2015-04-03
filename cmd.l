@@ -10,7 +10,10 @@
 "mk"                        { return MK;                                                }
 "join"                      { return JOIN;                                              }
 "exit"                      { return EXIT;                                              }
-"ls"                        { return LS;                                                }
+"show"                      { return SHOW;                                              }
+"tables"                    { return TABLES;                                            }
+"players"                   { return PLAYERS;                                           }
+"in"                        { return IN;                                                }
 "pwd"                       { return PWD;                                               }
 "raise"                     { return RAISE;                                             }
 "call"                      { return CALL;                                              }

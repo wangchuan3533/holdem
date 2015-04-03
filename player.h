@@ -9,10 +9,10 @@
 struct bufferevent;
 struct table_s;
 
-#define _PLAYER_STATE_LOGIN     0x01
-#define _PLAYER_STATE_TABLE     0x02
-#define _PLAYER_STATE_GAME      0x04
-#define _PLAYER_STATE_FOLDED    0x08
+#define PLAYER_STATE_LOGIN     0x01
+#define PLAYER_STATE_TABLE     0x02
+#define PLAYER_STATE_GAME      0x04
+#define PLAYER_STATE_FOLDED    0x08
 
 typedef unsigned int player_state_t;
 
@@ -29,14 +29,14 @@ typedef struct player_s {
 } player_t;
 
 #ifdef TEXAS_ASSERT
-#define ASSERT_LOGIN(player)         assert((player)->state & _PLAYER_STATE_LOGIN)
-#define ASSERT_NOT_LOGIN(player)     assert(!((player)->state & _PLAYER_STATE_LOGIN))
-#define ASSERT_TABLE(player)         assert((player)->state & _PLAYER_STATE_TABLE)
-#define ASSERT_NOT_TABLE(player)     assert(!((player)->state & _PLAYER_STATE_TABLE))
-#define ASSERT_GAME(player)          assert((player)->state & _PLAYER_STATE_GAME)
-#define ASSERT_NOT_GAME(player)      assert(!((player)->state & _PLAYER_STATE_GAME))
-#define ASSERT_FOLDED(player)        assert((player)->state & _PLAYER_STATE_FOLDED)
-#define ASSERT_NOT_FOLDED(player)    assert(!((player)->state & _PLAYER_STATE_FOLDED))
+#define ASSERT_LOGIN(player)         assert((player)->state & PLAYER_STATE_LOGIN)
+#define ASSERT_NOT_LOGIN(player)     assert(!((player)->state & PLAYER_STATE_LOGIN))
+#define ASSERT_TABLE(player)         assert((player)->state & PLAYER_STATE_TABLE)
+#define ASSERT_NOT_TABLE(player)     assert(!((player)->state & PLAYER_STATE_TABLE))
+#define ASSERT_GAME(player)          assert((player)->state & PLAYER_STATE_GAME)
+#define ASSERT_NOT_GAME(player)      assert(!((player)->state & PLAYER_STATE_GAME))
+#define ASSERT_FOLDED(player)        assert((player)->state & PLAYER_STATE_FOLDED)
+#define ASSERT_NOT_FOLDED(player)    assert(!((player)->state & PLAYER_STATE_FOLDED))
 #else
 #define ASSERT_LOGIN(player)
 #define ASSERT_NOT_LOGIN(player)
@@ -48,57 +48,57 @@ typedef struct player_s {
 #define ASSERT_NOT_FOLDED(player)
 #endif
 
-#define CHECK_LOGIN (player) do {\
-    if ((player)->state & _PLAYER_STATE_LOGIN == 0) {\
+#define CHECK_LOGIN(player) do {\
+    if (!((player)->state & PLAYER_STATE_LOGIN)) {\
         send_msg((player), "you are not logged in\ntexas> ");\
         return -1;\
     }\
 } while(0)
 
-#define CHECK_NOT_LOGIN (player) do {\
-    if ((player)->state & _PLAYER_STATE_LOGIN) {\
+#define CHECK_NOT_LOGIN(player) do {\
+    if ((player)->state & PLAYER_STATE_LOGIN) {\
         send_msg((player), "you are already logged in as %s\ntexas> ", (player)->name);\
         return -1;\
     }\
 } while(0)
 
-#define CHECK_TABLE (player) do {\
-    if ((player)->state & _PLAYER_STATE_TABLE == 0) {\
+#define CHECK_TABLE(player) do {\
+    if (!((player)->state & PLAYER_STATE_TABLE)) {\
         send_msg((player), "you are not in table\ntexas> ");\
         return -1;\
     }\
 } while(0)
 
-#define CHECK_NOT_TABLE (player) do {\
-    if ((player)->state & _PLAYER_STATE_TABLE) {\
+#define CHECK_NOT_TABLE(player) do {\
+    if ((player)->state & PLAYER_STATE_TABLE) {\
         send_msg((player), "you are already in table\ntexas> ");\
         return -1;\
     }\
 } while(0)
 
-#define CHECK_GAME (player) do {\
-    if ((player)->state & _PLAYER_STATE_GAME == 0) {\
+#define CHECK_GAME(player) do {\
+    if (!((player)->state & PLAYER_STATE_GAME)) {\
         send_msg((player), "you are not in game\ntexas> ");\
         return -1;\
     }\
 } while(0)
 
-#define CHECK_NOT_GAME (player) do {\
-    if ((player)->state & _PLAYER_STATE_GAME) {\
+#define CHECK_NOT_GAME(player) do {\
+    if ((player)->state & PLAYER_STATE_GAME) {\
         send_msg((player), "you are already in game\ntexas> ");\
         return -1;\
     }\
 } while(0)
 
-#define CHECK_FOLDED (player) do {\
-    if ((player)->state & _PLAYER_STATE_FOLDED == 0) {\
+#define CHECK_FOLDED(player) do {\
+    if (!((player)->state & PLAYER_STATE_FOLDED)) {\
         send_msg((player), "you are not folded\ntexas> ");\
         return -1;\
     }\
 } while(0)
 
-#define CHECK_NOT_FOLDED (player) do {\
-    if ((player)->state & _PLAYER_STATE_FOLDED) {\
+#define CHECK_NOT_FOLDED(player) do {\
+    if ((player)->state & PLAYER_STATE_FOLDED) {\
         send_msg((player), "you are already folded\ntexas> ");\
         return -1;\
     }\
