@@ -42,7 +42,7 @@ hand_rank_t calc_rank(hand_t hand)
         rank = _calc_rank(cards);
         if (rank_cmp(rank, max_rank) > 0) {
             max_rank = rank;
-            mask_rank.mask = j;
+            max_rank.mask = j;
         }
     }
     return max_rank;

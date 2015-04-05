@@ -9,8 +9,8 @@
 %token NUMBER 
 %token ADD SUB MUL DIV OP CP
 %token LOGIN LOGOUT SHOW TABLES PLAYERS IN MK JOIN PWD EXIT HELP
-%token RAISE CALL CHECK FOLD YELL
-%token SYMBOL
+%token RAISE CALL CHECK FOLD CHAT
+%token SYMBOL STRING
 %token EOL
 %union
 {
@@ -19,7 +19,7 @@
 }
 
 %type <intval> exp factor term NUMBER
-%type <strval> SYMBOL
+%type <strval> SYMBOL STRING
 
 %%
 
@@ -38,6 +38,7 @@ calclist: /* empty */
   | calclist FOLD EOL                              { fold();                           }
   | calclist CHECK EOL                             { check();                          }
   | calclist HELP EOL                              { print_help();                     }
+  | calclist CHAT STRING EOL                       { chat($3);                         }
   | calclist exp EOL                               { reply("%d\ntexas> ", $2);         }
   | calclist EOL                                   { reply("\ntexas> ");               }
   ;

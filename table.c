@@ -9,7 +9,7 @@
 char g_table_report_buffer[4096];
 table_t *g_tables = NULL;
 int g_num_tables = 0;
-static struct timeval _timeout = {10, 0};
+static struct timeval _timeout = {60, 0};
 
 table_t *table_create()
 {
@@ -119,7 +119,7 @@ void table_flop(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            if (table->players[i]->stata & PLAYER_STATE_GAME) {
+            if (table->players[i]->state & PLAYER_STATE_GAME) {
                 table->players[i]->bid = 0;
                 table->players[i]->hand_cards[2] = table->community_cards[0];
                 table->players[i]->hand_cards[3] = table->community_cards[1];

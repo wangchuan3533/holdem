@@ -19,8 +19,8 @@
 "call"                      { return CALL;                                              }
 "fold"                      { return FOLD;                                              }
 "check"                     { return CHECK;                                             }
-"yell"                      { return YELL;                                              }
 "help"                      { return HELP;                                              }
+"chat"                      { return CHAT;                                              }
 "+"                         { return ADD;                                               }
 "-"                         { return SUB;                                               }
 "*"                         { return MUL;                                               }
@@ -31,5 +31,5 @@
 [0-9]+                      { yylval.intval = atoi(yytext); return NUMBER;              }
 0x[a-f0-9]+                 { yylval.intval = strtol(yytext, NULL, 16); return NUMBER;  }
 [a-zA-Z][a-zA-Z0-9]*        { yylval.strval = strdup(yytext); return SYMBOL;            }
-.
+\"(\\.|[^\\"])*\"           { yylval.strval = strdup(yytext); return STRING;            }
 %%

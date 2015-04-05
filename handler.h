@@ -22,4 +22,5 @@ int fold();
 int check();
 int print_help();
 int reply(const char *fmt, ...);
+int chat(const char *str);
 #endif

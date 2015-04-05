@@ -312,3 +312,15 @@ int reply(const char *fmt, ...)
     va_end(ap);
     return 0;
 }
+
+int chat(const char *str)
+{
+    player_t *player = g_current_player;
+
+    CHECK_LOGIN(player);
+    CHECK_TABLE(player);
+
+    broadcast(player->table, "[CHAT] %s: %s\ntexas> ", player->name, str);
+
+    return 0;
+}
