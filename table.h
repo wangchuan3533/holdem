@@ -10,6 +10,11 @@
 #define MIN_PLAYERS 3
 #define MAX_TABLES 1024
 
+#define TEXAS_RET_SUCCESS 0
+#define TEXAS_RET_MIN_BET -1
+#define TEXAS_RET_LOW_BET -2
+#define TEXAS_RET_LOW_POT -3
+
 typedef enum table_state_e {
     TABLE_STATE_WAITING,
     TABLE_STATE_PREFLOP,
@@ -26,9 +31,9 @@ typedef struct table_s {
 
     player_t *players[TABLE_MAX_PLAYERS];
     int num_players;
+    int num_playing;
     int dealer;
     int turn;
-    int num_playing;
 
     int pot;
     int bid;

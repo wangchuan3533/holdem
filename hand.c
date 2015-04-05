@@ -42,6 +42,7 @@ hand_rank_t calc_rank(hand_t hand)
         rank = _calc_rank(cards);
         if (rank_cmp(rank, max_rank) > 0) {
             max_rank = rank;
+            mask_rank.mask = j;
         }
     }
     return max_rank;
@@ -59,6 +60,11 @@ hand_rank_t _calc_rank(hand_t hand)
         colors[hand[i] / CARD_BASE]++;
     }
 
+    // statistics
+    for (i = 0; i < CARD_BASE; i++) {
+        statistics[numbers[i]]++;
+    }
+
     // check flush
     for (i = 0; i < 4; i++) {
         if (colors[i] == CARD_NUM) {
@@ -66,21 +72,16 @@ hand_rank_t _calc_rank(hand_t hand)
         }
     }
 
-    // statistics
-    for (i = 0; i < CARD_BASE; i++) {
-        statistics[numbers[i]]++;
-    }
-
+    // check straight
     if (!(statistics[2] || statistics[3] || statistics[4])) {
-        for (i = 0; i <= CARD_BASE - CARD_NUM; i++) {
-            for (j = 0; j < CARD_NUM; j++) {
-                if (!numbers[i + j]) {
-                    break;
-                }
+        for (i = 0; numbers[i] == 0 && i < CARD_BASE; i++);
+        for (j = 0; j < 5 && i + j < CARD_BASE; j++) {
+            if (!numbers[i + j]) {
+                break;
             }
-            if (j == CARD_NUM) {
-                straight = 1;
-            }
+        }
+        if (j == 5) {
+            straight = 1;
         }
     }
 
@@ -98,7 +99,7 @@ hand_rank_t _calc_rank(hand_t hand)
         }
     }
 
-    // work
+    // calc levels
     if (flush && straight) {
         rank.level = numbers[CARD_BASE - 1] ? ROYAL_FLUSH : STRAIGHT_FLUSH;
         return rank;
@@ -142,6 +143,7 @@ hand_rank_t _calc_rank(hand_t hand)
     return rank;
 }
 
+// see hamming weight(http://en.wikipedia.org/wiki/Hamming_weight)
 unsigned int bit_count(unsigned int i)
 {
      i = i - ((i >> 1) & 0x55555555);

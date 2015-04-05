@@ -87,9 +87,9 @@ typedef struct player_s {
 
 extern player_t *g_current_player;
 extern player_t *g_players;
+extern int g_num_player;
 player_t *player_create();
 void player_destroy(player_t *player);
-extern int g_num_player;
 void send_msg(player_t *player, const char *fmt, ...);
 int player_to_json(player_t *player, char *buffer, int size);
 #endif

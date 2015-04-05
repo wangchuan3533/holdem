@@ -77,3 +77,4 @@ make test
 - all in
 - side-pot
 - chat
+- fix timeout

@@ -69,7 +69,7 @@ void table_pre_flop(table_t *table)
         return;
     }
 
-    for (i = 0, table->num_playing = 0; i < TABLE_MAX_PLAYERS; i++) {
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
@@ -119,10 +119,12 @@ void table_flop(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            table->players[i]->bid = 0;
-            table->players[i]->hand_cards[2] = table->community_cards[0];
-            table->players[i]->hand_cards[3] = table->community_cards[1];
-            table->players[i]->hand_cards[4] = table->community_cards[2];
+            if (table->players[i]->stata & PLAYER_STATE_GAME) {
+                table->players[i]->bid = 0;
+                table->players[i]->hand_cards[2] = table->community_cards[0];
+                table->players[i]->hand_cards[3] = table->community_cards[1];
+                table->players[i]->hand_cards[4] = table->community_cards[2];
+            }
         }
     }
     //broadcast(table, "[\"flop\",[\"%s\",\"%s\",\"%s\"]]\n",
@@ -188,7 +190,7 @@ void table_showdown(table_t *table)
     int i;
 
     player_t *winner;
-    hand_rank_t max = {0, 0};
+    hand_rank_t max = {0, 0, 0};
 
     broadcast(table, "[showdown] community cards is [%s, %s, %s, %s, %s]\ntexas> ",
             card_to_string(table->community_cards[0]),
@@ -200,12 +202,11 @@ void table_showdown(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            table->players[i]->bid = 0;
             table->players[i]->rank = calc_rank(table->players[i]->hand_cards);
-            broadcast(table, "player %s's cards is [%s, %s]. rank is [%s], score is %d\ntexas> ",
+            broadcast(table, "player %s's cards is [%s, %s]. rank is [%s], mask is %#x, score is %d\ntexas> ",
                     table->players[i]->name, card_to_string(table->players[i]->hand_cards[0]),
                     card_to_string(table->players[i]->hand_cards[1]), level_to_string(table->players[i]->rank.level),
-                    table->players[i]->rank.score);
+                    table->players[i]->rank.mask, table->players[i]->rank.score);
             if (rank_cmp(table->players[i]->rank, max) > 0) {
                 max = table->players[i]->rank;
                 winner = table->players[i];
@@ -224,6 +225,7 @@ int table_check_winner(table_t *table)
 {
     int i;
 
+    assert(table->num_playing == 1);
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i] && (table->players[i]->state & PLAYER_STATE_GAME)) {
             ASSERT_LOGIN(table->players[i]);
@@ -307,9 +309,6 @@ void broadcast(table_t *table, const char *fmt, ...)
 
     va_list ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
-    va_end(ap);
-    va_start(ap, fmt);
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
@@ -340,7 +339,7 @@ int player_join(table_t *table, player_t *player)
             return 0;
         }
     }
-    // fatal
+    assert(0);
     return -1;
 }
 
@@ -362,6 +361,7 @@ int player_quit(player_t *player)
         }
     }
     // fatal
+    assert(0);
     return -1;
 }
 
@@ -372,7 +372,6 @@ int next_player(table_t *table, int index)
     for (i = 1; i < TABLE_MAX_PLAYERS; i++) {
         next = (index + i) % TABLE_MAX_PLAYERS;
         if (table->players[next] && (table->players[next]->state & PLAYER_STATE_GAME)) {
-            ASSERT_LOGIN(table->players[next]);
             return next;
         }
     }
@@ -386,11 +385,15 @@ int player_bet(player_t *player, int bid)
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
     if (bid + player->bid < player->table->minimum_bet) {
-        return -1;
+        return TEXAS_RET_MIN_BET;
     }
     if (bid < player->table->bid - player->bid) {
-        return -2;
+        return TEXAS_RET_LOW_BET;
     }
+    if (bid > player->table->pot) {
+        return TEXAS_RET_LOW_POT;
+    }
+    player->pot -= bid;
     player->pot -= bid;
     player->table->pot += bid;
     player->bid += bid;
@@ -398,7 +401,7 @@ int player_bet(player_t *player, int bid)
         player->table->bid = player->bid;
     }
 
-    return 0;
+    return TEXAS_RET_SUCCESS;
 }
 
 int player_fold(player_t *player)
