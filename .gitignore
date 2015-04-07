@@ -1,6 +1,5 @@
 *.o
 server
-test
 node_modules
 tags
 *.tab.h

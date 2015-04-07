@@ -11,12 +11,16 @@ int logout();
 int create_table(const char *name);
 int join_table(const char *name);
 int quit_table();
-int ls(const char *name);
+int show_tables();
+int show_players();
+int show_players_in_table(const char *name);
 int pwd();
 int join();
 int raise(int);
 int call();
 int fold();
 int check();
+int print_help();
 int reply(const char *fmt, ...);
+int chat(const char *str);
 #endif

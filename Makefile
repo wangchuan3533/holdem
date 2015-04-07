@@ -5,6 +5,7 @@ RM=rm -rf
 C_FLAGS=-g -Wall
 #C_FLAGS+=-Werror
 C_FLAGS+=-I$(HOME)/.jumbo/include
+C_FLAGS+=-DTEXAS_ASSERT
 LD_FLAGS=-levent -lfl
 LD_FLAGS+=-L$(HOME)/.jumbo/lib
 LEX_FILES=$(wildcard *.l)
@@ -16,12 +17,11 @@ OBJS=$(SOURCES:.c=.o)
 .PHONY: clean
 all: server
 
-test: C_FLAGS+=-DUNIT_TEST
-test: test
+unit_test: C_FLAGS+=-DUNIT_TEST
 
 server : $(OBJS)
 	$(CC) $^ -o $@ $(LD_FLAGS)
-test : $(OBJS)
+unit_test : $(OBJS)
 	$(CC) $^ -o $@ $(LD_FLAGS)
 %.o: %.c
 	$(CC) $(C_FLAGS) -c $< -o $@
@@ -34,4 +34,4 @@ lex.yy.c : $(LEX_FILES)
 %.tab.c %.tab.h : $(YACC_FILES)
 	$(YACC) -d $^
 clean:
-	$(RM) *.o server test lex.yy.c *.tab.h *.tab.c
+	$(RM) *.o server unit_test lex.yy.c *.tab.h *.tab.c

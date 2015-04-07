@@ -23,6 +23,7 @@ typedef enum hand_level_s {
 typedef struct  hand_rank_s {
     hand_level_t level;
     int score;
+    unsigned int mask;
 } hand_rank_t;
 const char *level_to_string(hand_level_t);
 int rank_cmp(hand_rank_t r1, hand_rank_t r2);

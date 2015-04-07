@@ -1,33 +1,9 @@
-/* For sockaddr_in */
-#include <netinet/in.h>
-/* For socket functions */
-#include <sys/socket.h>
-/* For fcntl */
-#include <fcntl.h>
-
-#include <event2/event.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-
-#include <assert.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <stdarg.h>
-
+#include "texas_holdem.h"
 #include "card.h"
 #include "player.h"
 #include "table.h"
 #include "list.h"
 #include "handler.h"
-
-#define err_quit(fmt, args...) do {\
-    fprintf(stderr, "[file:%s line:%d]", __FILE__, __LINE__);\
-    fprintf(stderr, fmt, ##args);\
-    exit(1);\
-} while (0)
 
 #define MAX_LINE 4096
 
@@ -37,6 +13,8 @@ void do_write(evutil_socket_t fd, short events, void *arg);
 int handle(player_t *player, const char *line)
 {
     char line_buffer[MAX_LINE];
+
+    assert(player != NULL);
     g_current_player = player;
     snprintf(line_buffer, sizeof(line_buffer), "%s\n", line);
     yy_scan_string(line_buffer);
@@ -105,10 +83,7 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
             return;
         }
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        player->state = PLAYER_STATE_NEW;
         player->bev = bev;
-        player->bid = 0;
-        player->pot = 10000;
         bufferevent_setcb(bev, readcb, NULL, errorcb, player);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
@@ -122,10 +97,7 @@ void run(void)
     struct event_base *base;
     struct event *listener_event;
 
-    base = event_base_new();
-    if (!base)
-        return; /*XXXerr*/
-
+    assert(base = event_base_new());
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = 0;
     sin.sin_port = htons(10000);
@@ -161,6 +133,7 @@ void run(void)
 int main(int c, char **v)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
+    signal(SIGPIPE, SIG_IGN);
 
     run();
     return 0;
