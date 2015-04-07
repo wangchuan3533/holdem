@@ -11,6 +11,7 @@ int logout();
 int create_table(const char *name);
 int join_table(const char *name);
 int quit_table();
+int exit_game();
 int show_tables();
 int show_players();
 int show_players_in_table(const char *name);
@@ -23,4 +24,5 @@ int check();
 int print_help();
 int reply(const char *fmt, ...);
 int chat(const char *str);
+int prompt(const char *str);
 #endif

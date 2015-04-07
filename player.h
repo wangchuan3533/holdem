@@ -18,6 +18,7 @@ typedef unsigned int player_state_t;
 typedef struct player_s {
     struct bufferevent *bev;
     char name[MAX_NAME];
+    char prompt[MAX_NAME];
     int pot;
     int bet;
     struct table_s *table;
@@ -45,42 +46,42 @@ typedef struct player_s {
 
 #define CHECK_LOGIN(player) do {\
     if (!((player)->state & PLAYER_STATE_LOGIN)) {\
-        send_msg((player), "you are not logged in\ntexas> ");\
+        send_msg((player), "you are not logged in");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_NOT_LOGIN(player) do {\
     if ((player)->state & PLAYER_STATE_LOGIN) {\
-        send_msg((player), "you are already logged in as %s\ntexas> ", (player)->name);\
+        send_msg((player), "you are already logged in as %s", (player)->name);\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_TABLE(player) do {\
     if (!((player)->state & PLAYER_STATE_TABLE)) {\
-        send_msg((player), "you are not in table\ntexas> ");\
+        send_msg((player), "you are not in table");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_NOT_TABLE(player) do {\
     if ((player)->state & PLAYER_STATE_TABLE) {\
-        send_msg((player), "you are already in table\ntexas> ");\
+        send_msg((player), "you are already in table");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_GAME(player) do {\
     if (!((player)->state & PLAYER_STATE_GAME)) {\
-        send_msg((player), "you are not in game\ntexas> ");\
+        send_msg((player), "you are not in game");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_NOT_GAME(player) do {\
     if ((player)->state & PLAYER_STATE_GAME) {\
-        send_msg((player), "you are already in game\ntexas> ");\
+        send_msg((player), "you are already in game");\
         return -1;\
     }\
 } while(0)
@@ -91,5 +92,6 @@ extern int g_num_player;
 player_t *player_create();
 void player_destroy(player_t *player);
 void send_msg(player_t *player, const char *fmt, ...);
+void send_msgv(player_t *player, const char *fmt, va_list ap);
 int player_to_json(player_t *player, char *buffer, int size);
 #endif

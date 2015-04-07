@@ -16,13 +16,13 @@ int login(const char *name)
 
     HASH_FIND(hh, g_players, name, strlen(name), tmp);
     if (tmp) {
-        send_msg(player, "name %s already exist\ntexas> ", name);
+        send_msg(player, "name %s already exist", name);
         return -1;
     }
     strncpy(player->name, name, sizeof(player->name));
     HASH_ADD(hh, g_players, name, strlen(player->name), player);
     player->state |= PLAYER_STATE_LOGIN;
-    send_msg(player, "welcome to texas holdem, %s\ntexas> ", player->name);
+    send_msg(player, "welcome to texas holdem, %s", player->name);
     return 0;
 }
 
@@ -38,7 +38,7 @@ int logout()
     HASH_FIND(hh, g_players, player->name, strlen(player->name), tmp);
     assert(tmp == player);
     HASH_DELETE(hh, g_players, player);
-    send_msg(player, "bye %s\ntexas> ", player->name);
+    send_msg(player, "bye %s", player->name);
     player->state &= ~PLAYER_STATE_LOGIN;
     return 0;
 }
@@ -53,13 +53,13 @@ int create_table(const char *name)
 
     HASH_FIND(hh, g_tables, name, strlen(name), tmp);
     if (tmp) {
-        send_msg(player, "table %s already exist\ntexas> ", name);
+        send_msg(player, "table %s already exist", name);
         return -1;
     }
 
     table = table_create();
     if (table == NULL) {
-        send_msg(player, "table %s created failed\ntexas> ", name);
+        send_msg(player, "table %s created failed", name);
         return -1;
     }
     table->base = bufferevent_get_base(player->bev);
@@ -67,12 +67,12 @@ int create_table(const char *name)
     strncpy(table->name, name, sizeof(table->name));
     HASH_ADD(hh, g_tables, name, strlen(table->name), table);
     if (player_join(table, player) < 0) {
-        send_msg(player, "join table %s failed\ntexas> ", table->name);
+        send_msg(player, "join table %s failed", table->name);
         return -1;
     }
 
     table_reset(table);
-    //send_msg(player, "table %s created\ntexas> ", table->name);
+    //send_msg(player, "table %s created", table->name);
     return 0;
 }
 
@@ -86,19 +86,19 @@ int join_table(const char *name)
 
     HASH_FIND(hh, g_tables, name, strlen(name), table);
     if (!table) {
-        send_msg(player, "table %s dose not exist\ntexas> ", name);
+        send_msg(player, "table %s dose not exist", name);
         return -1;
     }
 
     if (player_join(table, player) < 0) {
-        send_msg(player, "join table %s failed\ntexas> ", table->name);
+        send_msg(player, "join table %s failed", table->name);
         return -1;
     }
 
     if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
         handle_table(table);
     }
-    //send_msg(player, "join table %s success\ntexas> ", table->name);
+    //send_msg(player, "join table %s success", table->name);
     return 0;
 }
 
@@ -114,7 +114,20 @@ int quit_table()
         fold();
     }
     assert(player_quit(player) == 0);
-    send_msg(player, "quit table %s success\ntexas> ", table->name);
+    send_msg(player, "quit table %s success", table->name);
+    return 0;
+}
+
+int exit_game()
+{
+    player_t *player = g_current_player;
+
+    if (player->state & PLAYER_STATE_LOGIN) {
+        assert(logout() == 0);
+    }
+    send_msg(player, "bye");
+    bufferevent_free(player->bev);
+    player_destroy(player);
     return 0;
 }
 
@@ -127,7 +140,7 @@ int show_tables()
     HASH_ITER(hh, g_tables, table, tmp) {
         send_msg(player, "%s ", table->name);
     }
-    send_msg(player, "\ntexas> ");
+    send_msg(player, "");
     return 0;
 }
 
@@ -138,7 +151,7 @@ int show_players()
     HASH_ITER(hh, g_players, tmp1, tmp2) {
         send_msg(player, "%s ", tmp1->name);
     }
-    send_msg(player, "\ntexas> ");
+    send_msg(player, "");
     return 0;
 }
 
@@ -151,7 +164,7 @@ int show_players_in_table(const char *name)
     CHECK_LOGIN(player);
     HASH_FIND(hh, g_tables, name, strlen(name), table);
     if (!table) {
-        send_msg(player, "table %s dose not exist\ntexas> ", name);
+        send_msg(player, "table %s dose not exist", name);
         return -1;
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
@@ -159,7 +172,7 @@ int show_players_in_table(const char *name)
             send_msg(player, "%s ", table->players[i]->name);
         }
     }
-    send_msg(player, "\ntexas> ");
+    send_msg(player, "");
     return 0;
 }
 
@@ -168,10 +181,10 @@ int pwd()
     player_t *player = g_current_player;
 
     if (player->state & PLAYER_STATE_TABLE) {
-        send_msg(player, "%s\ntexas> ", player->table->name);
+        send_msg(player, "%s", player->table->name);
         return 0;
     }
-    send_msg(player, "root\ntexas> ");
+    send_msg(player, "root");
     return 0;
 }
 
@@ -185,10 +198,10 @@ int raise(int bet)
     CHECK_IN_TURN(player);
 
     if (player_bet(player, bet) != 0) {
-        send_msg(player, "raise %d failed\ntexas> ", bet);
+        send_msg(player, "raise %d failed", bet);
         return -1;
     }
-    broadcast(player->table, "%s raise %d\ntexas> ", player->name, bet);
+    broadcast(player->table, "%s raise %d", player->name, bet);
     player->table->turn = next_player(player->table, player->table->turn);
     table_reset_timeout(player->table);
     report(player->table);
@@ -207,14 +220,14 @@ int call()
 
     bet = player->table->bet - player->bet;
     if (player_bet(player, bet) != 0) {
-        send_msg(player, "call %d failed\ntexas> ", bet);
+        send_msg(player, "call %d failed", bet);
         return -1;
     }
     if (player->table->players[next_player(player->table, player->table->turn)]->bet == player->table->bet) {
         handle_table(player->table);
         return 0;
     }
-    broadcast(player->table, "%s call %d\ntexas> ", player->name, bet);
+    broadcast(player->table, "%s call %d", player->name, bet);
     player->table->turn = next_player(player->table, player->table->turn);
     table_reset_timeout(player->table);
     report(player->table);
@@ -231,7 +244,7 @@ int fold()
     //CHECK_IN_TURN(player);
 
     assert(player_fold(player) == 0);
-    broadcast(player->table, "%s fold\ntexas> ", player->name);
+    broadcast(player->table, "%s fold", player->name);
     if (player->table->num_playing == 1) {
         assert(table_check_winner(player->table) == 0);
         handle_table(player->table);
@@ -256,7 +269,7 @@ int check()
     CHECK_IN_TURN(player);
 
     if (player_check(player) < 0) {
-        send_msg(player, "check failed\ntexas> ");
+        send_msg(player, "check failed");
         return -1;
     }
     if (player->table->turn == player->table->dealer) {
@@ -264,7 +277,7 @@ int check()
         return 0;
     }
 
-    broadcast(player->table, "%s check\ntexas> ", player->name);
+    broadcast(player->table, "%s check", player->name);
     player->table->turn = next_player(player->table, player->table->turn);
     table_reset_timeout(player->table);
     report(player->table);
@@ -274,7 +287,7 @@ int check()
 int yyerror(char *s)
 {
     player_t *player = g_current_player;
-    send_msg(player, "%s\ntexas> ", s);
+    send_msg(player, "%s", s);
     return 0;
 }
 
@@ -294,7 +307,7 @@ int print_help()
         "help\n"
     ;
 
-    evbuffer_add_printf(bufferevent_get_output(player->bev), "%s\ntexas> ", usage);
+    evbuffer_add_printf(bufferevent_get_output(player->bev), "%s", usage);
     return 0;
 }
 
@@ -304,7 +317,7 @@ int reply(const char *fmt, ...)
     player_t *player = g_current_player;
 
     va_start(ap, fmt);
-    evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
+    send_msgv(player, fmt, ap);
     va_end(ap);
     return 0;
 }
@@ -316,7 +329,16 @@ int chat(const char *str)
     CHECK_LOGIN(player);
     CHECK_TABLE(player);
 
-    broadcast(player->table, "[CHAT] %s: %s\ntexas> ", player->name, str);
+    broadcast(player->table, "[CHAT] %s: %s", player->name, str);
 
+    return 0;
+}
+
+int prompt(const char *str)
+{
+    player_t *player = g_current_player;
+
+    snprintf(player->prompt, sizeof(player->prompt), "\n%s", str);
+    send_msg(player, "set prompt success");
     return 0;
 }

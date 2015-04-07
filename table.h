@@ -43,7 +43,7 @@ typedef struct table_s {
 #define current_player(t) ((t)->players[(t)->turn])
 #define CHECK_IN_TURN(player) do {\
     if ((player) != current_player((player)->table)) {\
-        send_msg((player), "you are not in turn\ntexas> ");\
+        send_msg((player), "you are not in turn");\
         return -1;\
     }\
 } while(0)
@@ -83,7 +83,7 @@ extern char g_table_report_buffer[4096];
 } while (0)
 #else
 #define report(table) do {\
-    broadcast((table), "turn %s pot %d\ntexas> ", table->players[table->turn]->name, table->pot);\
+    broadcast((table), "turn %s pot %d", table->players[table->turn]->name, table->pot);\
 } while (0)
 #endif
 #endif

@@ -17,6 +17,7 @@ player_t *player_create()
     }
     memset(player, 0, sizeof(player_t));
     player->pot = 10000;
+    snprintf(player->prompt, sizeof(player->prompt), "\n>");
     g_num_players++;
     return player;
 }
@@ -34,7 +35,14 @@ void send_msg(player_t *player, const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
     evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
+    evbuffer_add_printf(bufferevent_get_output(player->bev), "%s", player->prompt);
     va_end(ap);
+}
+
+void send_msgv(player_t *player, const char *fmt, va_list ap)
+{
+    evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
+    evbuffer_add_printf(bufferevent_get_output(player->bev), "%s", player->prompt);
 }
 
 int player_to_json(player_t *player, char *buffer, int size)

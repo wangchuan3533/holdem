@@ -73,7 +73,7 @@ void table_pre_flop(table_t *table)
             table->players[i]->hand_cards[1] = get_card(&table->deck);
             table->num_playing++;
             //send_msg(table->players[i], "[\"pre_flop\",[\"%s\",\"%s\"]]\n",
-            send_msg(table->players[i], "[pre_flop] [%s, %s]\ntexas> ",
+            send_msg(table->players[i], "[PRE_FLOP] %s, %s",
                     card_to_string(table->players[i]->hand_cards[0]),
                     card_to_string(table->players[i]->hand_cards[1]));
         }
@@ -87,14 +87,14 @@ void table_pre_flop(table_t *table)
     table->players[table->turn]->bet += table->small_blind;
     table->players[table->turn]->pot -= table->small_blind;
     table->pot += table->players[table->turn]->bet;
-    broadcast(table, "%s blind %d\ntexas> ", table->players[table->turn]->name, table->players[table->turn]->bet);
+    broadcast(table, "%s blind %d", table->players[table->turn]->name, table->players[table->turn]->bet);
     table->turn = next_player(table, table->turn);
 
     // big blind bet
     table->players[table->turn]->bet += table->big_blind;
     table->players[table->turn]->pot -= table->big_blind;
     table->pot += table->players[table->turn]->bet;
-    broadcast(table, "%s blind %d\ntexas> ", table->players[table->turn]->name, table->players[table->turn]->bet);
+    broadcast(table, "%s blind %d", table->players[table->turn]->name, table->players[table->turn]->bet);
     table->turn = next_player(table, table->turn);
     table_reset_timeout(table);
 
@@ -123,7 +123,7 @@ void table_flop(table_t *table)
         }
     }
     //broadcast(table, "[\"flop\",[\"%s\",\"%s\",\"%s\"]]\n",
-    broadcast(table, "[flop] [%s, %s, %s]\ntexas> ",
+    broadcast(table, "[FLOP] %s, %s, %s",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]));
@@ -149,7 +149,7 @@ void table_turn(table_t *table)
         }
     }
     //broadcast(table, "[\"turn\",[\"%s\"]]\n",card_to_string(table->community_cards[3]));
-    broadcast(table, "[turn] [%s]\ntexas> ", card_to_string(table->community_cards[3]));
+    broadcast(table, "[TURN] %s", card_to_string(table->community_cards[3]));
     table->state = TABLE_STATE_TURN;
     table->bet  = 0;
     table->turn = next_player(table, table->dealer);
@@ -172,7 +172,7 @@ void table_river(table_t *table)
         }
     }
     //broadcast(table, "[\"river\",[\"%s\"]]\n", card_to_string(table->community_cards[3]));
-    broadcast(table, "[river] [%s]\ntexas> ", card_to_string(table->community_cards[4]));
+    broadcast(table, "[RIVER] %s", card_to_string(table->community_cards[4]));
     table->state = TABLE_STATE_RIVER;
     table->bet  = 0;
     table->turn = next_player(table, table->dealer);
@@ -187,7 +187,7 @@ void table_showdown(table_t *table)
     player_t *winner;
     hand_rank_t max = {0, 0, 0};
 
-    broadcast(table, "[showdown] community cards is [%s, %s, %s, %s, %s]\ntexas> ",
+    broadcast(table, "[SHOWDOWN] community cards is %s, %s, %s, %s, %s",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]),
@@ -198,7 +198,7 @@ void table_showdown(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             table->players[i]->rank = calc_rank(table->players[i]->hand_cards);
-            broadcast(table, "player %s's cards is [%s, %s]. rank is [%s], mask is %#x, score is %d\ntexas> ",
+            broadcast(table, "player %s's cards is [%s, %s]. rank is [%s], mask is %#x, score is %d",
                     table->players[i]->name, card_to_string(table->players[i]->hand_cards[0]),
                     card_to_string(table->players[i]->hand_cards[1]), level_to_string(table->players[i]->rank.level),
                     table->players[i]->rank.mask, table->players[i]->rank.score);
@@ -210,7 +210,7 @@ void table_showdown(table_t *table)
     }
 
     //broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", winner->name, table->pot);
-    broadcast(table, "[winner] %s [pot] %d\ntexas> ", winner->name, table->pot);
+    broadcast(table, "[WINNER] %s [POT] %d", winner->name, table->pot);
     winner->pot += table->pot;
     table->pot = 0;
     table_reset(table);
@@ -227,7 +227,7 @@ int table_check_winner(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             //broadcast(table, "[\"finish\",{\"winner\":\"%s\",\"pot\":%d}]\n", table->players[i]->name, table->pot);
-            broadcast(table, "[winner] %s [pot] %d\ntexas> ", table->players[i]->name, table->pot);
+            broadcast(table, "[WINNER] %s [POT] %d", table->players[i]->name, table->pot);
             table->players[i]->pot += table->pot;
             table_reset(table);
             return TEXAS_RET_SUCCESS;
@@ -306,7 +306,7 @@ void broadcast(table_t *table, const char *fmt, ...)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            evbuffer_add_vprintf(bufferevent_get_output(table->players[i]->bev), fmt, ap);
+            send_msgv(table->players[i], fmt, ap);
         }
     }
     va_end(ap);
@@ -328,7 +328,7 @@ int player_join(table_t *table, player_t *player)
             player->state |= PLAYER_STATE_TABLE;
             table->num_players++;
             //broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
-            broadcast(table, "%s joined\ntexas> ", player->name);
+            broadcast(table, "%s joined", player->name);
             return TEXAS_RET_SUCCESS;
         }
     }
@@ -415,7 +415,7 @@ int player_check(player_t *player)
     ASSERT_GAME(player);
 
     if (player->table->bet > player->bet) {
-        send_msg(player, "check failed\ntexas> ");
+        send_msg(player, "check failed");
         return TEXAS_RET_FAILURE;
     }
 
