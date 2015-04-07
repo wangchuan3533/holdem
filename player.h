@@ -22,6 +22,7 @@ typedef struct player_s {
     int pot;
     int bet;
     int chips;
+    int all_in;
     struct table_s *table;
     card_t hand_cards[7];
     hand_rank_t rank;

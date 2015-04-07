@@ -10,6 +10,18 @@
 #define MIN_PLAYERS 3
 #define MAX_TABLES 1024
 
+#define ACTION_BET      0x01
+#define ACTION_RAISE    0x02
+#define ACTION_CALL     0x04
+#define ACTION_CHCEK    0x08
+#define ACTION_FOLD     0x10
+#define ACTION_ALL_IN   0x20
+
+typedef struct action_s {
+    unsigned int action;
+    unsigned int value;
+} action_t;
+
 typedef enum table_state_e {
     TABLE_STATE_WAITING,
     TABLE_STATE_PREFLOP,
@@ -29,12 +41,15 @@ typedef struct table_s {
     int num_playing;
     int dealer;
     int turn;
+    unsigned int action_mask;
+    int minimum_bet;
+    int mininum_raise;
+    int raise_count;
 
     int pot;
     int bet;
     int small_blind;
     int big_blind;
-    int minimum_bet;
     struct event_base *base;
     struct event *ev_timeout;
     UT_hash_handle hh;
@@ -55,6 +70,7 @@ int player_fold(player_t *player);
 int player_check(player_t *player);
 int player_bet(player_t *player, int bet);
 int handle_table(table_t *table);
+int handle_action(player_t *player, action_t action);
 void table_reset(table_t *table);
 void table_pre_flop(table_t *table);
 void table_flop(table_t *table);
@@ -83,7 +99,7 @@ extern char g_table_report_buffer[4096];
 } while (0)
 #else
 #define report(table) do {\
-    broadcast((table), "turn %s pot %d", table->players[table->turn]->name, table->pot);\
+    broadcast((table), "turn %s pot %d", current_player(table)->name, table->pot);\
 } while (0)
 #endif
 #endif

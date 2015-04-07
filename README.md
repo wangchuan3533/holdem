@@ -84,8 +84,9 @@ make test
 ```
 
 ## TODO
-- pre_flop时大盲注check进入翻牌
+- last action
 - all in
 - side-pot
 - chat
 - fix timeout
+- burn card

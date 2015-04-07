@@ -17,6 +17,7 @@
 "players"                   { return PLAYERS;                                                               }
 "in"                        { return IN;                                                                    }
 "pwd"                       { return PWD;                                                                   }
+"bet"                       { return BET;                                                                   }
 "raise"                     { return RAISE;                                                                 }
 "call"                      { return CALL;                                                                  }
 "fold"                      { return FOLD;                                                                  }

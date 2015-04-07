@@ -37,12 +37,15 @@ void table_reset(table_t *table)
 
     table->state = TABLE_STATE_WAITING;
     init_deck(&(table->deck));
-    table->pot = 0;
-    table->bet = 0;
-    table->small_blind = 50;
-    table->big_blind   = 100;
-    table->minimum_bet = 100;
-    table->num_playing = 0;
+    table->pot           = 0;
+    table->bet           = 0;
+    table->small_blind   = 50;
+    table->big_blind     = 100;
+    table->minimum_bet   = 100;
+    table->minimum_raise = 100;
+    table->raise_count   = 0;
+    table->num_playing   = 0;
+    table_clear_timeout(table);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]) {
@@ -84,17 +87,17 @@ void table_pre_flop(table_t *table)
     table->turn = next_player(table, table->dealer);
 
     // small blind bet
-    table->players[table->turn]->bet += table->small_blind;
-    table->players[table->turn]->pot -= table->small_blind;
-    table->pot += table->players[table->turn]->bet;
-    broadcast(table, "%s blind %d", table->players[table->turn]->name, table->players[table->turn]->bet);
+    current_player(table)->bet += table->small_blind;
+    current_player(table)->pot -= table->small_blind;
+    table->pot += current_player(table)->bet;
+    broadcast(table, "%s blind %d", current_player(table)->name, current_player(table)->bet);
     table->turn = next_player(table, table->turn);
 
     // big blind bet
-    table->players[table->turn]->bet += table->big_blind;
-    table->players[table->turn]->pot -= table->big_blind;
-    table->pot += table->players[table->turn]->bet;
-    broadcast(table, "%s blind %d", table->players[table->turn]->name, table->players[table->turn]->bet);
+    current_player(table)->bet += table->big_blind;
+    current_player(table)->pot -= table->big_blind;
+    table->pot += current_player(table)->bet;
+    broadcast(table, "%s blind %d", current_player(table)->name, current_player(table)->bet);
     table->turn = next_player(table, table->turn);
     table_reset_timeout(table);
 
@@ -248,7 +251,10 @@ inline void table_reset_timeout(table_t *table)
 
 inline void table_clear_timeout(table_t *table)
 {
-    event_del(table->ev_timeout);
+    if (table->ev_timeout) {
+        event_del(table->ev_timeout);
+    }
+    table->ev_timeout = NULL;
 }
 
 int table_to_json(table_t *table, char *buffer, int size)
@@ -293,7 +299,7 @@ int table_to_json(table_t *table, char *buffer, int size)
     }
     return snprintf(buffer, size, 
             "{\"community_cards\":[%s],\"players\":[%s],\"dealer\":%d,\"turn\":\"%s\",\"pot\":%d,\"bet\":%d,\"minimum_bet\":%d}",
-            cards_buffer, players_buffer, table->dealer, table->players[table->turn]->name, table->pot, table->bet, table->minimum_bet);
+            cards_buffer, players_buffer, table->dealer, current_player(table)->name, table->pot, table->bet, table->minimum_bet);
 }
 
 void broadcast(table_t *table, const char *fmt, ...)
@@ -374,30 +380,76 @@ int next_player(table_t *table, int index)
 
 int player_bet(player_t *player, int bet)
 {
+    table_t *table = player->table;
+
     ASSERT_LOGIN(player);
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
-    if (bet + player->bet < player->table->minimum_bet) {
-        return TEXAS_RET_MIN_BET;
-    }
-    if (bet < player->table->bet - player->bet) {
-        return TEXAS_RET_LOW_BET;
-    }
-    if (bet > player->table->pot) {
+    assert(player->bet == 0);
+    assert(table->bet == 0);
+
+    if (bet > player->pot) {
         return TEXAS_RET_LOW_POT;
     }
-    player->pot -= bet;
-    player->table->pot += bet;
-    player->bet += bet;
-    if (player->bet > player->table->bet) {
-        player->table->bet = player->bet;
+    if (bet < table->minimum_bet) {
+        return TEXAS_RET_MIN_BET;
     }
+    player->pot -= bet;
+    table->pot += bet;
+    player->bet += bet;
+    table->bet = player->bet;
+    table->minimum_raise = table->bet;
+
+    return TEXAS_RET_SUCCESS;
+}
+
+int player_raise(player_t *player, int raise)
+{
+    table_t *table = player->table;
+    int diff = table->bet - player->bet;
+
+    ASSERT_LOGIN(player);
+    ASSERT_TABLE(player);
+    ASSERT_GAME(player);
+    assert(player->pot >= diff + table->minimum_raise);
+
+    if (raise < table->minimum_raise) {
+        return TEXAS_RET_MIN_BET;
+    }
+    if (raise + diff > player->pot) {
+        return TEXAS_RET_LOW_POT;
+    }
+    player->pot -= (raise + diff);
+    table->pot += (raise + diff);
+    player->bet += (raise + diff);
+    table->bet = player->bet;
+    table->raise_count++;
+    table->minimum_raise = raise;
+
+    return TEXAS_RET_SUCCESS;
+}
+
+int player_call(player_t *player)
+{
+    table_t *table = player->table;
+    int diff = player->table->bet - player->bet;
+
+    ASSERT_LOGIN(player);
+    ASSERT_TABLE(player);
+    ASSERT_GAME(player);
+    assert(player->pot >= diff);
+
+    player->pot -= diff;
+    player->table->pot += diff;
+    player->bet += diff;
 
     return TEXAS_RET_SUCCESS;
 }
 
 int player_fold(player_t *player)
 {
+    table_t *table = player->table;
+
     ASSERT_LOGIN(player);
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
@@ -410,15 +462,114 @@ int player_fold(player_t *player)
 
 int player_check(player_t *player)
 {
+    table_t *table = player->table;
+
+    ASSERT_LOGIN(player);
+    ASSERT_TABLE(player);
+    ASSERT_GAME(player);
+    assert(player->bet == 0);
+    assert(player->table->bet == 0);
+
+    return TEXAS_RET_SUCCESS;
+}
+
+int handle_action(player_t *player, action_t action)
+{
+    table_t *table = player->table;
+    player_t *player_next;
+    int next;
+
     ASSERT_LOGIN(player);
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
 
-    if (player->table->bet > player->bet) {
-        send_msg(player, "check failed");
-        return TEXAS_RET_FAILURE;
+    // check action
+    if (!(action.action & table->action_mask)) {
+        return TEXAS_RET_ACTION;
     }
 
+    if (action.action != ACTION_FOLD) {
+        CHECK_IN_TURN(player);
+    }
+
+    switch (action.action) {
+    case ACTION_BET:
+        if (player_bet(player, action.value) != TEXAS_RET_SUCCESS) {
+            send_msg("bet failed");
+            return TEXAS_RET_FAILURE;
+        }
+        break;
+    case ACTION_RAISE:
+        if (player_raise(player, action.value) != TEXAS_RET_SUCCESS) {
+            send_msg("raise failed");
+            return TEXAS_RET_FAILURE;
+        }
+        break;
+    case ACTION_CALL:
+        if (player_call(player) != TEXAS_RET_SUCCESS) {
+            send_msg("call failed");
+            return TEXAS_RET_FAILURE;
+        }
+        break;
+    case ACTION_CHCEK:
+        if (player_check(player) != TEXAS_RET_SUCCESS) {
+            send_msg("check failed");
+            return TEXAS_RET_FAILURE;
+        }
+        break;
+    case ACTION_ALL_IN:
+        if (player_all_in(player) != TEXAS_RET_SUCCESS) {
+            send_msg("check failed");
+            return TEXAS_RET_FAILURE;
+        }
+        break;
+    case ACTION_FOLD:
+        if (player_fold(player) != TEXAS_RET_SUCCESS) {
+            send_msg("check failed");
+            return TEXAS_RET_FAILURE;
+        }
+        break;
+    default:
+        err_quit("default");
+        break;
+    }
+
+    if (table->num_playing == 1) {
+        assert(table_check_winner(player->table) == 0);
+        handle_table(player->table);
+        return TEXAS_RET_SUCCESS;
+    }
+
+    if (current_player(table) == player) {
+        if (table->state == TABLE_STATE_PREFLOP && table->turn == next_player(table, next_player(
+        
+        // generate available actions
+        next = next_player(table, table->turn);
+        player_next = table->players[next];
+        assert(next >= 0);
+        assert(player_next);
+
+        table->action_mask = 0;
+        table->action_mask |= ACTION_FOLD;
+
+        if (player_next->pot > 0) {
+            table->action_mask |= ACTION_ALL_IN;
+        }
+
+        if (table->bet == 0) {
+            table->action_mask |= ACTION_CHCEK;
+            table->action_mask |= ACTION_BET;
+        }
+
+        if (player_next->pot + player_next->bet >= table->bet) {
+            table->action_mask |= ACTION_CALL;
+        }
+
+        if (player_next->pot + player_next->bet >= table->bet + table->minimum_raise) {
+            table->action_mask |= ACTION_RAISE;
+        }
+
+    }
     return TEXAS_RET_SUCCESS;
 }
 
@@ -445,3 +596,5 @@ int handle_table(table_t *table)
     }
     return TEXAS_RET_SUCCESS;
 }
+
+

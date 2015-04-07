@@ -14,7 +14,6 @@ int handle(player_t *player, const char *line)
 {
     char line_buffer[MAX_LINE];
 
-    assert(player != NULL);
     g_current_player = player;
     snprintf(line_buffer, sizeof(line_buffer), "%s\n", line);
     yy_scan_string(line_buffer);
@@ -29,6 +28,7 @@ void readcb(struct bufferevent *bev, void *ctx)
     char *line;
     size_t n;
 
+    assert(player);
     while ((line = evbuffer_readln(bufferevent_get_input(bev), &n, EVBUFFER_EOL_CRLF))) {
         handle(player, line);
     }
@@ -38,6 +38,7 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
 {
     player_t *player = (player_t *)ctx;
 
+    assert(player);
     if (error & BEV_EVENT_EOF) {
         /* connection has been closed, do any clean up here */
         /* ... */
@@ -49,17 +50,15 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
         /* ... */
     }
 
-    handle(player, "fold");
-    handle(player, "logout");
-    player_destroy(player);
-    //free(player);
-    bufferevent_free(bev);
+    handle(player, "exit");
 }
 
 void timeoutcb(evutil_socket_t fd, short events, void *arg)
 {
     table_t *table = (table_t *)arg;
-    player_t *player = table->players[table->turn];
+
+    assert(current_player(table));
+    player_t *player = current_player(table);
     handle(player, "fold");
 }
 

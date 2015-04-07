@@ -27,9 +27,10 @@
 #define TEXAS_RET_SUCCESS      0
 #define TEXAS_RET_FAILURE     -1
 #define TEXAS_RET_MIN_BET     -2
-#define TEXAS_RET_LOW_BET     -3
+#define TEXAS_RET_MIN_RAISE   -3
 #define TEXAS_RET_LOW_POT     -4
 #define TEXAS_RET_MAX_PLAYER  -5
+#define TEXAS_RET_ACTION      -6
 
 int texas_db_init();
 int texas_db_close();
