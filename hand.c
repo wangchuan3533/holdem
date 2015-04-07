@@ -50,14 +50,14 @@ hand_rank_t calc_rank(hand_t hand)
 
 hand_rank_t _calc_rank(hand_t hand)
 {
-    int i, j, numbers[CARD_BASE] = {0}, colors[4] = {0}, statistics[CARD_NUM] = {0};
+    int i, j, numbers[CARD_BASE] = {0}, suits[4] = {0}, statistics[CARD_NUM] = {0};
     int flush = 0, straight = 0;
     hand_rank_t rank;
 
     // prepare
     for (i = 0; i < CARD_NUM; i++) {
         numbers[hand[i] % CARD_BASE]++;
-        colors[hand[i] / CARD_BASE]++;
+        suits[hand[i] / CARD_BASE]++;
     }
 
     // statistics
@@ -67,7 +67,7 @@ hand_rank_t _calc_rank(hand_t hand)
 
     // check flush
     for (i = 0; i < 4; i++) {
-        if (colors[i] == CARD_NUM) {
+        if (suits[i] == CARD_NUM) {
             flush = 1;
         }
     }
