@@ -19,7 +19,7 @@ typedef struct player_s {
     struct bufferevent *bev;
     char name[MAX_NAME];
     int pot;
-    int bid;
+    int bet;
     struct table_s *table;
     card_t hand_cards[7];
     hand_rank_t rank;

@@ -16,7 +16,7 @@ static const char *level_string[] = {
     "ROYAL_FLUSH",
 };
 
-const char *level_to_string(hand_level_t level)
+inline const char *level_to_string(hand_level_t level)
 {
     return level_string[level];
 }
@@ -40,9 +40,9 @@ hand_rank_t calc_rank(hand_t hand)
         }
         
         rank = _calc_rank(cards);
+        rank.mask = i;
         if (rank_cmp(rank, max_rank) > 0) {
             max_rank = rank;
-            max_rank.mask = j;
         }
     }
     return max_rank;
@@ -144,14 +144,14 @@ hand_rank_t _calc_rank(hand_t hand)
 }
 
 // see hamming weight(http://en.wikipedia.org/wiki/Hamming_weight)
-unsigned int bit_count(unsigned int i)
+inline unsigned int bit_count(unsigned int i)
 {
      i = i - ((i >> 1) & 0x55555555);
      i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
      return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
 
-int rank_cmp(hand_rank_t r1, hand_rank_t r2)
+inline int rank_cmp(hand_rank_t r1, hand_rank_t r2)
 {
     if (r1.level > r2.level) {
         return 1;

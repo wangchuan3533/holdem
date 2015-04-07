@@ -1,9 +1,4 @@
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <event2/event.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
+#include "texas_holdem.h"
 #include "player.h"
 player_t *g_current_player;
 player_t *g_players = NULL;
@@ -45,6 +40,6 @@ void send_msg(player_t *player, const char *fmt, ...)
 int player_to_json(player_t *player, char *buffer, int size)
 {
     return snprintf(buffer, size,
-            "{\"name\":\"%s\",\"pot\":%d,\"bid\":%d,\"state\":%d}",
-            player->name, player->pot, player->bid, player->state);
+            "{\"name\":\"%s\",\"pot\":%d,\"bet\":%d,\"state\":%d}",
+            player->name, player->pot, player->bet, player->state);
 }

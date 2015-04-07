@@ -1,8 +1,4 @@
-#include <assert.h>
-#include <stdarg.h>
-#include <event2/event.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
+#include "texas_holdem.h"
 #include "handler.h"
 #include "card.h"
 #include "player.h"
@@ -179,7 +175,7 @@ int pwd()
     return 0;
 }
 
-int raise(int bid)
+int raise(int bet)
 {
     player_t *player = g_current_player;
 
@@ -188,11 +184,11 @@ int raise(int bid)
     CHECK_GAME(player);
     CHECK_IN_TURN(player);
 
-    if (player_bet(player, bid) != 0) {
-        send_msg(player, "raise %d failed\ntexas> ", bid);
+    if (player_bet(player, bet) != 0) {
+        send_msg(player, "raise %d failed\ntexas> ", bet);
         return -1;
     }
-    broadcast(player->table, "%s raise %d\ntexas> ", player->name, bid);
+    broadcast(player->table, "%s raise %d\ntexas> ", player->name, bet);
     player->table->turn = next_player(player->table, player->table->turn);
     table_reset_timeout(player->table);
     report(player->table);
@@ -202,23 +198,23 @@ int raise(int bid)
 int call()
 {
     player_t *player = g_current_player;
-    int bid;
+    int bet;
 
     CHECK_LOGIN(player);
     CHECK_TABLE(player);
     CHECK_GAME(player);
     CHECK_IN_TURN(player);
 
-    bid = player->table->bid - player->bid;
-    if (player_bet(player, bid) != 0) {
-        send_msg(player, "call %d failed\ntexas> ", bid);
+    bet = player->table->bet - player->bet;
+    if (player_bet(player, bet) != 0) {
+        send_msg(player, "call %d failed\ntexas> ", bet);
         return -1;
     }
-    if (player->table->players[next_player(player->table, player->table->turn)]->bid == player->table->bid) {
+    if (player->table->players[next_player(player->table, player->table->turn)]->bet == player->table->bet) {
         handle_table(player->table);
         return 0;
     }
-    broadcast(player->table, "%s call %d\ntexas> ", player->name, bid);
+    broadcast(player->table, "%s call %d\ntexas> ", player->name, bet);
     player->table->turn = next_player(player->table, player->table->turn);
     table_reset_timeout(player->table);
     report(player->table);

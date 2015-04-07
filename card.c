@@ -1,5 +1,4 @@
-#include <stdlib.h>
-#include <time.h>
+#include "texas_holdem.h"
 #include "card.h"
 static const char *card_string[] = {
     "♥2",
@@ -56,12 +55,12 @@ static const char *card_string[] = {
     "♣A",
 };
 
-const char *card_to_string(card_t card)
+inline const char *card_to_string(card_t card)
 {
     return card_string[card];
 }
 
-void init_deck(deck_t *deck)
+inline void init_deck(deck_t *deck)
 {
     int i;
     srandom(time(NULL));
@@ -71,7 +70,7 @@ void init_deck(deck_t *deck)
     deck->end = 52;
 }
 
-int get_card(deck_t *deck)
+inline int get_card(deck_t *deck)
 {
     int index = random() % (deck->end--);
     if (index == deck->end) {

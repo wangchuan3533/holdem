@@ -10,11 +10,6 @@
 #define MIN_PLAYERS 3
 #define MAX_TABLES 1024
 
-#define TEXAS_RET_SUCCESS 0
-#define TEXAS_RET_MIN_BET -1
-#define TEXAS_RET_LOW_BET -2
-#define TEXAS_RET_LOW_POT -3
-
 typedef enum table_state_e {
     TABLE_STATE_WAITING,
     TABLE_STATE_PREFLOP,
@@ -36,7 +31,7 @@ typedef struct table_s {
     int turn;
 
     int pot;
-    int bid;
+    int bet;
     int small_blind;
     int big_blind;
     int minimum_bet;
@@ -58,7 +53,7 @@ int player_quit(player_t *player);
 int next_player(table_t *table, int index);
 int player_fold(player_t *player);
 int player_check(player_t *player);
-int player_bet(player_t *player, int bid);
+int player_bet(player_t *player, int bet);
 int handle_table(table_t *table);
 void table_reset(table_t *table);
 void table_pre_flop(table_t *table);
@@ -67,9 +62,9 @@ void table_turn(table_t *table);
 void table_river(table_t *table);
 void table_showdown(table_t *table);
 int table_check_winner(table_t *table);
-int table_init_timeout(table_t *table);
-int table_reset_timeout(table_t *table);
-int table_clear_timeout(table_t *table);
+void table_init_timeout(table_t *table);
+void table_reset_timeout(table_t *table);
+void table_clear_timeout(table_t *table);
 int table_to_json(table_t *table, char *buffer, int size);
 
 table_t *table_create();

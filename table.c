@@ -1,9 +1,4 @@
-#include <string.h>
-#include <event2/event.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <stdlib.h>
-#include <assert.h>
+#include "texas_holdem.h"
 #include "table.h"
 
 char g_table_report_buffer[4096];
@@ -43,7 +38,7 @@ void table_reset(table_t *table)
     table->state = TABLE_STATE_WAITING;
     init_deck(&(table->deck));
     table->pot = 0;
-    table->bid = 0;
+    table->bet = 0;
     table->small_blind = 50;
     table->big_blind   = 100;
     table->minimum_bet = 100;
@@ -54,7 +49,7 @@ void table_reset(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             table->players[i]->state &= ~PLAYER_STATE_GAME;
-            table->players[i]->bid = 0;
+            table->players[i]->bet = 0;
             table->players[i]->rank.level = 0;
             table->players[i]->rank.score = 0;
         }
@@ -89,21 +84,21 @@ void table_pre_flop(table_t *table)
     table->turn = next_player(table, table->dealer);
 
     // small blind bet
-    table->players[table->turn]->bid += table->small_blind;
+    table->players[table->turn]->bet += table->small_blind;
     table->players[table->turn]->pot -= table->small_blind;
-    table->pot += table->players[table->turn]->bid;
-    broadcast(table, "%s blind %d\ntexas> ", table->players[table->turn]->name, table->players[table->turn]->bid);
+    table->pot += table->players[table->turn]->bet;
+    broadcast(table, "%s blind %d\ntexas> ", table->players[table->turn]->name, table->players[table->turn]->bet);
     table->turn = next_player(table, table->turn);
 
     // big blind bet
-    table->players[table->turn]->bid += table->big_blind;
+    table->players[table->turn]->bet += table->big_blind;
     table->players[table->turn]->pot -= table->big_blind;
-    table->pot += table->players[table->turn]->bid;
-    broadcast(table, "%s blind %d\ntexas> ", table->players[table->turn]->name, table->players[table->turn]->bid);
+    table->pot += table->players[table->turn]->bet;
+    broadcast(table, "%s blind %d\ntexas> ", table->players[table->turn]->name, table->players[table->turn]->bet);
     table->turn = next_player(table, table->turn);
     table_reset_timeout(table);
 
-    table->bid = table->big_blind;
+    table->bet = table->big_blind;
     report(table);
 }
 
@@ -120,7 +115,7 @@ void table_flop(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             if (table->players[i]->state & PLAYER_STATE_GAME) {
-                table->players[i]->bid = 0;
+                table->players[i]->bet = 0;
                 table->players[i]->hand_cards[2] = table->community_cards[0];
                 table->players[i]->hand_cards[3] = table->community_cards[1];
                 table->players[i]->hand_cards[4] = table->community_cards[2];
@@ -133,7 +128,7 @@ void table_flop(table_t *table)
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]));
     table->state = TABLE_STATE_FLOP;
-    table->bid  = 0;
+    table->bet  = 0;
     table->turn = next_player(table, table->dealer);
     table_reset_timeout(table);
     report(table);
@@ -149,14 +144,14 @@ void table_turn(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            table->players[i]->bid = 0;
+            table->players[i]->bet = 0;
             table->players[i]->hand_cards[5] = table->community_cards[3];
         }
     }
     //broadcast(table, "[\"turn\",[\"%s\"]]\n",card_to_string(table->community_cards[3]));
     broadcast(table, "[turn] [%s]\ntexas> ", card_to_string(table->community_cards[3]));
     table->state = TABLE_STATE_TURN;
-    table->bid  = 0;
+    table->bet  = 0;
     table->turn = next_player(table, table->dealer);
     table_reset_timeout(table);
     report(table);
@@ -172,14 +167,14 @@ void table_river(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
-            table->players[i]->bid = 0;
+            table->players[i]->bet = 0;
             table->players[i]->hand_cards[6] = table->community_cards[4];
         }
     }
     //broadcast(table, "[\"river\",[\"%s\"]]\n", card_to_string(table->community_cards[3]));
     broadcast(table, "[river] [%s]\ntexas> ", card_to_string(table->community_cards[4]));
     table->state = TABLE_STATE_RIVER;
-    table->bid  = 0;
+    table->bet  = 0;
     table->turn = next_player(table, table->dealer);
     table_reset_timeout(table);
     report(table);
@@ -219,6 +214,7 @@ void table_showdown(table_t *table)
     winner->pot += table->pot;
     table->pot = 0;
     table_reset(table);
+    handle_table(table);
 }
 
 int table_check_winner(table_t *table)
@@ -234,28 +230,25 @@ int table_check_winner(table_t *table)
             broadcast(table, "[winner] %s [pot] %d\ntexas> ", table->players[i]->name, table->pot);
             table->players[i]->pot += table->pot;
             table_reset(table);
-            return 0;
+            return TEXAS_RET_SUCCESS;
         }
     }
-    return -1;
+    return TEXAS_RET_FAILURE;
 }
 
-int table_init_timeout(table_t *table)
+inline void table_init_timeout(table_t *table)
 {
     table->ev_timeout = event_new(table->base, -1, 0, timeoutcb, table);
-    return 0;
 }
 
-int table_reset_timeout(table_t *table)
+inline void table_reset_timeout(table_t *table)
 {
     event_add(table->ev_timeout, &_timeout);
-    return 0;
 }
 
-int table_clear_timeout(table_t *table)
+inline void table_clear_timeout(table_t *table)
 {
     event_del(table->ev_timeout);
-    return 0;
 }
 
 int table_to_json(table_t *table, char *buffer, int size)
@@ -299,8 +292,8 @@ int table_to_json(table_t *table, char *buffer, int size)
         break;
     }
     return snprintf(buffer, size, 
-            "{\"community_cards\":[%s],\"players\":[%s],\"dealer\":%d,\"turn\":\"%s\",\"pot\":%d,\"bid\":%d,\"minimum_bet\":%d}",
-            cards_buffer, players_buffer, table->dealer, table->players[table->turn]->name, table->pot, table->bid, table->minimum_bet);
+            "{\"community_cards\":[%s],\"players\":[%s],\"dealer\":%d,\"turn\":\"%s\",\"pot\":%d,\"bet\":%d,\"minimum_bet\":%d}",
+            cards_buffer, players_buffer, table->dealer, table->players[table->turn]->name, table->pot, table->bet, table->minimum_bet);
 }
 
 void broadcast(table_t *table, const char *fmt, ...)
@@ -326,7 +319,7 @@ int player_join(table_t *table, player_t *player)
     ASSERT_LOGIN(player);
     ASSERT_NOT_TABLE(player);
     if (table->num_players >= TABLE_MAX_PLAYERS) {
-        return -1;
+        return TEXAS_RET_MAX_PLAYER;
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i] == NULL) {
@@ -336,11 +329,11 @@ int player_join(table_t *table, player_t *player)
             table->num_players++;
             //broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
             broadcast(table, "%s joined\ntexas> ", player->name);
-            return 0;
+            return TEXAS_RET_SUCCESS;
         }
     }
     assert(0);
-    return -1;
+    return TEXAS_RET_FAILURE;
 }
 
 int player_quit(player_t *player)
@@ -357,12 +350,12 @@ int player_quit(player_t *player)
             player->table->players[i] = NULL;
             player->table = NULL;
             player->state &= ~PLAYER_STATE_TABLE;
-            return 0;
+            return TEXAS_RET_SUCCESS;
         }
     }
     // fatal
     assert(0);
-    return -1;
+    return TEXAS_RET_FAILURE;
 }
 
 int next_player(table_t *table, int index)
@@ -379,26 +372,25 @@ int next_player(table_t *table, int index)
     return -1;
 }
 
-int player_bet(player_t *player, int bid)
+int player_bet(player_t *player, int bet)
 {
     ASSERT_LOGIN(player);
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
-    if (bid + player->bid < player->table->minimum_bet) {
+    if (bet + player->bet < player->table->minimum_bet) {
         return TEXAS_RET_MIN_BET;
     }
-    if (bid < player->table->bid - player->bid) {
+    if (bet < player->table->bet - player->bet) {
         return TEXAS_RET_LOW_BET;
     }
-    if (bid > player->table->pot) {
+    if (bet > player->table->pot) {
         return TEXAS_RET_LOW_POT;
     }
-    player->pot -= bid;
-    player->pot -= bid;
-    player->table->pot += bid;
-    player->bid += bid;
-    if (player->bid > player->table->bid) {
-        player->table->bid = player->bid;
+    player->pot -= bet;
+    player->table->pot += bet;
+    player->bet += bet;
+    if (player->bet > player->table->bet) {
+        player->table->bet = player->bet;
     }
 
     return TEXAS_RET_SUCCESS;
@@ -411,9 +403,9 @@ int player_fold(player_t *player)
     ASSERT_GAME(player);
 
     player->state &= ~PLAYER_STATE_GAME;
-    player->bid = 0;
+    player->bet = 0;
     player->table->num_playing--;
-    return 0;
+    return TEXAS_RET_SUCCESS;
 }
 
 int player_check(player_t *player)
@@ -422,12 +414,12 @@ int player_check(player_t *player)
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
 
-    if (player->table->bid > player->bid) {
+    if (player->table->bet > player->bet) {
         send_msg(player, "check failed\ntexas> ");
-        return -1;
+        return TEXAS_RET_FAILURE;
     }
 
-    return 0;
+    return TEXAS_RET_SUCCESS;
 }
 
 int handle_table(table_t *table)
@@ -451,5 +443,5 @@ int handle_table(table_t *table)
     default:
         break;
     }
-    return 0;
+    return TEXAS_RET_SUCCESS;
 }

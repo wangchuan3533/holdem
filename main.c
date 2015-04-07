@@ -1,34 +1,9 @@
-/* For sockaddr_in */
-#include <netinet/in.h>
-/* For socket functions */
-#include <sys/socket.h>
-/* For fcntl */
-#include <fcntl.h>
-#include <signal.h>
-
-#include <event2/event.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-
-#include <assert.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <stdarg.h>
-
+#include "texas_holdem.h"
 #include "card.h"
 #include "player.h"
 #include "table.h"
 #include "list.h"
 #include "handler.h"
-
-#define err_quit(fmt, args...) do {\
-    fprintf(stderr, "[file:%s line:%d]", __FILE__, __LINE__);\
-    fprintf(stderr, fmt, ##args);\
-    exit(1);\
-} while (0)
 
 #define MAX_LINE 4096
 
