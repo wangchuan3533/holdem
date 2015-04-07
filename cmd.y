@@ -8,7 +8,7 @@
 /* delcare token */
 %token NUMBER 
 %token ADD SUB MUL DIV OP CP
-%token LOGIN LOGOUT SHOW TABLES PLAYERS IN MK JOIN PWD QUIT EXIT HELP
+%token REG LOGIN LOGOUT SHOW TABLES PLAYERS IN MK JOIN PWD QUIT EXIT HELP
 %token RAISE CALL CHECK FOLD CHAT PROMPT
 %token IDENTIFIER STRING
 %token EOL
@@ -24,7 +24,8 @@
 %%
 
 calclist: /* empty */
-  | calclist LOGIN IDENTIFIER EOL                  { login($3); free($3);                  }
+  | calclist REG IDENTIFIER IDENTIFIER EOL         { reg($3, $4); free($3); free($4);      }
+  | calclist LOGIN IDENTIFIER IDENTIFIER EOL       { login($3, $4); free($3); free($4);    }
   | calclist LOGOUT EOL                            { logout();                             }
   | calclist MK IDENTIFIER EOL                     { create_table($3); free($3);           }
   | calclist JOIN IDENTIFIER EOL                   { join_table($3); free($3);             }

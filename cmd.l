@@ -5,6 +5,7 @@
 %option noinput
 %option nounput
 %%
+"reg"                       { return REG;                                                                   }
 "login"                     { return LOGIN;                                                                 }
 "logout"                    { return LOGOUT;                                                                }
 "mk"                        { return MK;                                                                    }

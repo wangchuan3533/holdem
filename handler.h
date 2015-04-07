@@ -6,7 +6,8 @@ void yy_scan_string(const char *);
 int yyparse();
 void yylex_destroy();
 
-int login(const char *name);
+int reg(const char *name, const char *password);
+int login(const char *name, const char *password);
 int logout();
 int create_table(const char *name);
 int join_table(const char *name);

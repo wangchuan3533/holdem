@@ -134,6 +134,7 @@ int main(int c, char **v)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     signal(SIGPIPE, SIG_IGN);
+    texas_db_init();
 
     run();
     return 0;

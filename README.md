@@ -1,10 +1,10 @@
 # texas hold'em poker
 
 # compile
-依赖libevent库
+依赖libevent berkeley-db
 ubuntu下:
 ```bash
-sudo apt-get install libevent-dev
+sudo apt-get install libevent-dev libdb-dev
 git clone https://github.com/wangchuan3533/texas_holdem.git
 cd texas_holdem
 make
@@ -26,35 +26,46 @@ make
 
 ## client 1
 telnet localhost 10000
-texas> login x
+texas> ret x pass
+texas> login x pass
 texas> mk t
 
 ## client 2
 telnet localhost 10000
-texas> login y
+texas> reg y pass
+texas> login y pass
 texas> join t
 
 ## client 3
 telnet localhost 10000
-texas> login z
+texas> reg z pass
+texas> login z pass
 texas> join t
 ```
 ## 客户端命令
 ### 房间相关
-- login user_name     登录
+- reg user password   注册
+- login user password 登录
 - logout              登出
-- mk table_name       新建游戏
-- join table_name     加入游戏
+- mk table_name       新建房间
+- join table_name     加入房间
+- quit                退出当前房间
 - exit                退出游戏
-- show tables         查看游戏
-- show players        查看游戏
-- pwd            查看当前游戏
+- show tables         查看房间
+- show players        查看玩家
+- pwd                 查看当前房间
+- help                查看帮助信息
+- chat 'text'         房间内群聊(要用引号括起来)
+- prompt 'text'       设置提示符
 
 ### 游戏操作
-- raise <num>    加注 (数字部分可以使用10进制或16进制数字，也可以是数学表达式, 支持'+', '-', '*', '/', '(', ')')
+- raise <num>    加注(num 可以为数学表达式，见下面的计算器说明)
 - call           跟注
 - fold           弃牌
 - check          让牌
+
+### 计算器
+- 支持加减乘除的基本运算，数字支持10进制和16进制(0x前缀)
 
 ## 使用 websocket代理
 

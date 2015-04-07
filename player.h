@@ -21,6 +21,7 @@ typedef struct player_s {
     char prompt[MAX_NAME];
     int pot;
     int bet;
+    int chips;
     struct table_s *table;
     card_t hand_cards[7];
     hand_rank_t rank;

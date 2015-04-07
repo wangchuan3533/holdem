@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <time.h>
 
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -29,5 +30,10 @@
 #define TEXAS_RET_LOW_BET     -3
 #define TEXAS_RET_LOW_POT     -4
 #define TEXAS_RET_MAX_PLAYER  -5
+
+int texas_db_init();
+int texas_db_close();
+int texas_db_put(void *key, size_t key_len, void *value, size_t val_len);
+int texas_db_get(void *key, size_t key_len, void *value, size_t *val_len);
 
 #endif

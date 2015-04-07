@@ -5,15 +5,55 @@
 #include "hand.h"
 #include "table.h"
 
-int login(const char *name)
+int reg(const char *name, const char *password)
 {
     
     player_t *tmp, *player = g_current_player;
+    char key_buf[128], val_buf[128];
+    size_t key_len = sizeof(key_buf), val_len = sizeof(val_buf);
+
+    CHECK_NOT_LOGIN(player);
+
+    if (texas_db_get(name, strlen(name), val_buf, &val_len) == 0) {
+        send_msg(player, "name %s already exist", name);
+        return -1;
+    }
+    if (texas_db_put(name, strlen(name), password, strlen(password)) != 0) {
+        send_msg(player, "save to db failed %s", name);
+        return -1;
+    }
+
+    HASH_FIND(hh, g_players, name, strlen(name), tmp);
+    if (tmp) {
+        send_msg(player, "name %s already exist", name);
+        return -1;
+    }
+    strncpy(player->name, name, sizeof(player->name));
+    HASH_ADD(hh, g_players, name, strlen(player->name), player);
+    player->state |= PLAYER_STATE_LOGIN;
+    send_msg(player, "welcome to texas holdem, %s", player->name);
+    return 0;
+}
+
+int login(const char *name, const char *password)
+{
+    
+    player_t *tmp, *player = g_current_player;
+    char key_buf[128], val_buf[128];
+    size_t key_len = sizeof(key_buf), val_len = sizeof(val_buf);
 
     CHECK_NOT_LOGIN(player);
     ASSERT_NOT_TABLE(player);
     ASSERT_NOT_GAME(player);
 
+    if (texas_db_get(name, strlen(name), val_buf, &val_len) != 0) {
+        send_msg(player, "player %s dose not exist", name);
+        return -1;
+    }
+    if (strlen(password) != val_len || strncmp(password, val_buf, val_len) != 0) {
+        send_msg(player, "wrong password");
+        return -1;
+    }
     HASH_FIND(hh, g_players, name, strlen(name), tmp);
     if (tmp) {
         send_msg(player, "name %s already exist", name);
