@@ -34,19 +34,6 @@ void table_reset(table_t *table)
 {
     int i;
 
-    table->state = TABLE_STATE_WAITING;
-    init_deck(&(table->deck));
-    table->pot           = 0;
-    table->bet           = 0;
-    table->small_blind   = 50;
-    table->big_blind     = 100;
-    table->minimum_bet   = 100;
-    table->minimum_raise = 100;
-    table->raise_count   = 0;
-    table->num_playing   = 0;
-    table->dealer        = next_player(table, table->dealer);
-    table_clear_timeout(table);
-
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
@@ -59,6 +46,20 @@ void table_reset(table_t *table)
             table->players[i]->rank.score = 0;
         }
     }
+
+    table->state = TABLE_STATE_WAITING;
+    init_deck(&(table->deck));
+    table->pot           = 0;
+    table->bet           = 0;
+    table->small_blind   = 50;
+    table->big_blind     = 100;
+    table->minimum_bet   = 100;
+    table->minimum_raise = 100;
+    table->raise_count   = 0;
+    table->num_playing   = 0;
+    table->num_all_in    = 0;
+    table->dealer        = next_player(table, table->dealer);
+    table_clear_timeout(table);
 }
 
 void table_pre_flop(table_t *table)
@@ -74,7 +75,6 @@ void table_pre_flop(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             table->players[i]->bet = 0;
-            table->players[i]->all_in = 0;
             table->players[i]->talked = 0;
             table->players[i]->state |= PLAYER_STATE_GAME;
             table->players[i]->hand_cards[0] = get_card(&table->deck);
@@ -125,7 +125,6 @@ void table_flop(table_t *table)
             ASSERT_TABLE(table->players[i]);
             if (table->players[i]->state & PLAYER_STATE_GAME) {
                 table->players[i]->bet = 0;
-                table->players[i]->all_in = 0;
                 table->players[i]->talked = 0;
                 table->players[i]->hand_cards[2] = table->community_cards[0];
                 table->players[i]->hand_cards[3] = table->community_cards[1];
@@ -157,7 +156,6 @@ void table_turn(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             table->players[i]->bet = 0;
-            table->players[i]->all_in = 0;
             table->players[i]->talked = 0;
             table->players[i]->hand_cards[5] = table->community_cards[3];
         }
@@ -183,7 +181,6 @@ void table_river(table_t *table)
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
             table->players[i]->bet = 0;
-            table->players[i]->all_in = 0;
             table->players[i]->talked = 0;
             table->players[i]->hand_cards[6] = table->community_cards[4];
         }
@@ -394,7 +391,7 @@ int next_player(table_t *table, int index)
 
     for (i = 1; i < TABLE_MAX_PLAYERS; i++) {
         next = (index + i) % TABLE_MAX_PLAYERS;
-        if (table->players[next] && (table->players[next]->state & PLAYER_STATE_GAME)) {
+        if (table->players[next] && (table->players[next]->state & PLAYER_STATE_GAME) && (!table->players[next]->all_in)) {
             return next;
         }
     }
@@ -482,9 +479,9 @@ int player_all_in(player_t *player)
     ASSERT_TABLE(player);
     ASSERT_GAME(player);
 
-    table->pot += player->pot;
-    player->pot        -= player->pot;
-    player->bet        += player->pot;
+    table->pot  += player->pot;
+    player->bet += player->pot;
+    player->pot -= player->pot;
     if (player->bet > table->bet) {
         diff = player->bet - table->bet;
         table->bet = player->bet;
@@ -495,6 +492,7 @@ int player_all_in(player_t *player)
     }
     player->talked = 1;
     player->all_in = 1;
+    table->num_all_in++;
 
     return TEXAS_RET_SUCCESS;
 }
@@ -541,6 +539,11 @@ int handle_action(player_t *player, action_t action, int value)
     if (!(action & table->action_mask)) {
         send_msg(player, "invalid action");
         return TEXAS_RET_ACTION;
+    }
+
+    if (player->all_in) {
+        send_msg(player, "you already all in");
+        return TEXAS_RET_ALL_IN;
     }
 
     switch (action) {
@@ -600,8 +603,13 @@ int handle_action(player_t *player, action_t action, int value)
     if (current_player(table) == player) {
         // generate available actions
         next = next_player(table, table->turn);
+        if (next < 0 && table->num_all_in == table->num_playing) {
+            do {
+                handle_table(table);
+            } while (table->state > TABLE_STATE_PREFLOP);
+            return TEXAS_RET_SUCCESS;
+        }
         player_next = table->players[next];
-        assert(next >= 0);
         assert(player_next);
 
         if (player_next->bet == table->bet && player_next->talked == 1) {

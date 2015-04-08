@@ -19,7 +19,7 @@ int show_players_in_table(const char *name);
 int pwd();
 int join();
 int bet(int);
-int raise(int);
+int raise_(int);
 int call();
 int fold();
 int check();

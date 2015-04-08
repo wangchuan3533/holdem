@@ -37,6 +37,7 @@ typedef struct table_s {
     player_t *players[TABLE_MAX_PLAYERS];
     int num_players;
     int num_playing;
+    int num_all_in;
     int dealer;
     int small_blind;
     int big_blind;

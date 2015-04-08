@@ -235,7 +235,7 @@ int bet(int bet)
     CHECK_IN_TURN(g_current_player);
     return handle_action(g_current_player, ACTION_BET, bet);
 }
-int raise(int raise)
+int raise_(int raise)
 {
     CHECK_LOGIN(g_current_player);
     CHECK_TABLE(g_current_player);

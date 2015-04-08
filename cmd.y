@@ -36,7 +36,7 @@ calclist: /* empty */
   | calclist SHOW PLAYERS IN IDENTIFIER EOL        { show_players_in_table($5); free($5);  }
   | calclist PWD EOL                               { pwd();                                }
   | calclist BET exp EOL                           { bet($3);                              }
-  | calclist RAISE exp EOL                         { raise($3);                            }
+  | calclist RAISE exp EOL                         { raise_($3);                           }
   | calclist CALL EOL                              { call();                               }
   | calclist FOLD EOL                              { fold();                               }
   | calclist CHECK EOL                             { check();                              }
