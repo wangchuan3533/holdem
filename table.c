@@ -45,6 +45,7 @@ void table_reset(table_t *table)
     table->minimum_raise = 100;
     table->raise_count   = 0;
     table->num_playing   = 0;
+    table->dealer        = next_player(table, table->dealer);
     table_clear_timeout(table);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
@@ -66,6 +67,17 @@ void table_pre_flop(table_t *table)
     if (table->num_players < MIN_PLAYERS) {
         return;
     }
+
+    // small blind
+    table->small_blind = next_player(table, table->dealer);
+    if (talbe->players[table->small_blind]->pot < (table->minimum_bet >> 1)) {
+    }
+    for (table->small_blind = next_player(table, table->dealer); table->players[table->small_blind]->pot < (table->minimum_bet >> 1); table->small_blind = next_player(table, table->small_blind)) {
+
+    }
+
+    do {
+        table->small_blind = next_player(table, current);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]) {

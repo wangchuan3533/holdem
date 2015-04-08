@@ -40,6 +40,8 @@ typedef struct table_s {
     int num_players;
     int num_playing;
     int dealer;
+    int small_blind;
+    int big_blind;
     int turn;
     unsigned int action_mask;
     int minimum_bet;
@@ -48,8 +50,6 @@ typedef struct table_s {
 
     int pot;
     int bet;
-    int small_blind;
-    int big_blind;
     struct event_base *base;
     struct event *ev_timeout;
     UT_hash_handle hh;
