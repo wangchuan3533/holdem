@@ -6,6 +6,7 @@
 #include "card.h"
 #include "player.h"
 
+#define TABLE_TMP_BUFFER_SIZE 1024
 #define TABLE_MAX_PLAYERS 10
 #define MIN_PLAYERS 3
 #define MAX_TABLES 1024
@@ -17,10 +18,7 @@
 #define ACTION_FOLD     0x10
 #define ACTION_ALL_IN   0x20
 
-typedef struct action_s {
-    unsigned int action;
-    unsigned int value;
-} action_t;
+typedef unsigned int action_t;
 
 typedef enum table_state_e {
     TABLE_STATE_WAITING,
@@ -45,7 +43,7 @@ typedef struct table_s {
     int turn;
     unsigned int action_mask;
     int minimum_bet;
-    int mininum_raise;
+    int minimum_raise;
     int raise_count;
 
     int pot;
@@ -53,6 +51,7 @@ typedef struct table_s {
     struct event_base *base;
     struct event *ev_timeout;
     UT_hash_handle hh;
+    char buffer[TABLE_TMP_BUFFER_SIZE];
 } table_t;
 
 #define current_player(t) ((t)->players[(t)->turn])
@@ -66,40 +65,46 @@ typedef struct table_s {
 int player_join(table_t *table, player_t *player);
 int player_quit(player_t *player);
 int next_player(table_t *table, int index);
+int player_bet(player_t *player, int bet);
+int player_raise(player_t *player, int raise);
+int player_call(player_t *player);
 int player_fold(player_t *player);
 int player_check(player_t *player);
-int player_bet(player_t *player, int bet);
-int handle_table(table_t *table);
-int handle_action(player_t *player, action_t action);
+int player_all_in(player_t *player);
+
+table_t *table_create();
+void tatle_destroy(table_t *table);
+
 void table_reset(table_t *table);
 void table_pre_flop(table_t *table);
 void table_flop(table_t *table);
 void table_turn(table_t *table);
 void table_river(table_t *table);
 void table_showdown(table_t *table);
-int table_check_winner(table_t *table);
 void table_init_timeout(table_t *table);
 void table_reset_timeout(table_t *table);
 void table_clear_timeout(table_t *table);
+int table_check_winner(table_t *table);
 int table_to_json(table_t *table, char *buffer, int size);
 
-table_t *table_create();
-void tatle_destroy(table_t *table);
 extern table_t *g_tables;
 extern int g_num_tables;
 
+int handle_action(player_t *player, action_t action, int value);
+int handle_table(table_t *table);
+
 void broadcast(table_t *table, const char *fmt, ...);
-void send_msg(player_t *player, const char *fmt, ...);
 void timeoutcb(evutil_socket_t fd, short events, void *arg);
-extern char g_table_report_buffer[4096];
+int action_to_string(action_t mask, char *buffer, int size);
 #ifdef _USE_JSON
 #define report(table) do {\
-    table_to_json((table), g_table_report_buffer, sizeof(g_table_report_buffer));\
-    broadcast((table), "[\"update\",%s]\n", g_table_report_buffer);\
+    table_to_json((table), (table)->buffer, sizeof((table)->buffer));\
+    broadcast((table), "[\"update\",%s]\n", (table)->buffer);\
 } while (0)
 #else
 #define report(table) do {\
-    broadcast((table), "turn %s pot %d", current_player(table)->name, table->pot);\
+    action_to_string((table)->action_mask, (table)->buffer, sizeof((table)->buffer));\
+    broadcast((table), "turn %s bet %d pot %d mask %s", current_player(table)->name, table->bet, table->pot, (table)->buffer);\
 } while (0)
 #endif
 #endif

@@ -9,7 +9,7 @@
 %token NUMBER 
 %token ADD SUB MUL DIV OP CP
 %token REG LOGIN LOGOUT SHOW TABLES PLAYERS IN MK JOIN PWD QUIT EXIT HELP
-%token BET RAISE CALL CHECK FOLD CHAT PROMPT
+%token BET RAISE CALL CHECK FOLD ALL_IN CHAT PROMPT
 %token IDENTIFIER STRING
 %token EOL
 %union
@@ -35,11 +35,12 @@ calclist: /* empty */
   | calclist SHOW PLAYERS EOL                      { show_players();                       }
   | calclist SHOW PLAYERS IN IDENTIFIER EOL        { show_players_in_table($5); free($5);  }
   | calclist PWD EOL                               { pwd();                                }
+  | calclist BET exp EOL                           { bet($3);                              }
   | calclist RAISE exp EOL                         { raise($3);                            }
-  | calclist BET exp EOL                           { raise($3);                            }
   | calclist CALL EOL                              { call();                               }
   | calclist FOLD EOL                              { fold();                               }
   | calclist CHECK EOL                             { check();                              }
+  | calclist ALL_IN EOL                            { all_in();                             }
   | calclist HELP EOL                              { print_help();                         }
   | calclist CHAT STRING EOL                       { chat($3); free($3);                   }
   | calclist PROMPT STRING EOL                     { prompt($3); free($3);                 }

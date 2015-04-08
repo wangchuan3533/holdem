@@ -67,7 +67,7 @@ int texas_db_get(void *key, size_t key_len, void *value, size_t *val_len)
     v.size = 0;
 
     if ((ret = g_db->get(g_db, NULL, &k, &v, 0)) != 0) {
-        g_db->err(g_db, ret, "DB->get");
+        //g_db->err(g_db, ret, "DB->get");
         return -1;
     }
     memcpy(value, v.data, v.size);

@@ -22,6 +22,7 @@
 "call"                      { return CALL;                                                                  }
 "fold"                      { return FOLD;                                                                  }
 "check"                     { return CHECK;                                                                 }
+"all in"                    { return ALL_IN;                                                                }
 "help"                      { return HELP;                                                                  }
 "chat"                      { return CHAT;                                                                  }
 "prompt"                    { return PROMPT;                                                                }

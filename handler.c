@@ -178,7 +178,7 @@ int show_tables()
 
     CHECK_LOGIN(player);
     HASH_ITER(hh, g_tables, table, tmp) {
-        send_msg(player, "%s ", table->name);
+        send_msg_raw(player, "%s ", table->name);
     }
     send_msg(player, "");
     return 0;
@@ -189,7 +189,7 @@ int show_players()
     player_t *tmp1, *tmp2, *player = g_current_player;
 
     HASH_ITER(hh, g_players, tmp1, tmp2) {
-        send_msg(player, "%s ", tmp1->name);
+        send_msg_raw(player, "%s ", tmp1->name);
     }
     send_msg(player, "");
     return 0;
@@ -209,7 +209,7 @@ int show_players_in_table(const char *name)
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]) {
-            send_msg(player, "%s ", table->players[i]->name);
+            send_msg_raw(player, "%s ", table->players[i]->name);
         }
     }
     send_msg(player, "");
@@ -227,101 +227,52 @@ int pwd()
     send_msg(player, "root");
     return 0;
 }
-
-int raise(int bet)
+int bet(int bet)
 {
-    player_t *player = g_current_player;
-
-    CHECK_LOGIN(player);
-    CHECK_TABLE(player);
-    CHECK_GAME(player);
-    CHECK_IN_TURN(player);
-
-    if (player_bet(player, bet) != 0) {
-        send_msg(player, "raise %d failed", bet);
-        return -1;
-    }
-    broadcast(player->table, "%s raise %d", player->name, bet);
-    player->table->turn = next_player(player->table, player->table->turn);
-    table_reset_timeout(player->table);
-    report(player->table);
-    return 0;
+    CHECK_LOGIN(g_current_player);
+    CHECK_TABLE(g_current_player);
+    CHECK_GAME(g_current_player);
+    CHECK_IN_TURN(g_current_player);
+    return handle_action(g_current_player, ACTION_BET, bet);
 }
-
+int raise(int raise)
+{
+    CHECK_LOGIN(g_current_player);
+    CHECK_TABLE(g_current_player);
+    CHECK_GAME(g_current_player);
+    CHECK_IN_TURN(g_current_player);
+    return handle_action(g_current_player, ACTION_RAISE, raise);
+}
 int call()
 {
-    player_t *player = g_current_player;
-    int bet;
-
-    CHECK_LOGIN(player);
-    CHECK_TABLE(player);
-    CHECK_GAME(player);
-    CHECK_IN_TURN(player);
-
-    bet = player->table->bet - player->bet;
-    if (player_bet(player, bet) != 0) {
-        send_msg(player, "call %d failed", bet);
-        return -1;
-    }
-    if (player->table->players[next_player(player->table, player->table->turn)]->bet == player->table->bet) {
-        handle_table(player->table);
-        return 0;
-    }
-    broadcast(player->table, "%s call %d", player->name, bet);
-    player->table->turn = next_player(player->table, player->table->turn);
-    table_reset_timeout(player->table);
-    report(player->table);
-    return 0;
+    CHECK_LOGIN(g_current_player);
+    CHECK_TABLE(g_current_player);
+    CHECK_GAME(g_current_player);
+    CHECK_IN_TURN(g_current_player);
+    return handle_action(g_current_player, ACTION_CALL, 0);
 }
-
 int fold()
 {
-    player_t *player = g_current_player;
-
-    CHECK_LOGIN(player);
-    CHECK_TABLE(player);
-    CHECK_GAME(player);
-    //CHECK_IN_TURN(player);
-
-    assert(player_fold(player) == 0);
-    broadcast(player->table, "%s fold", player->name);
-    if (player->table->num_playing == 1) {
-        assert(table_check_winner(player->table) == 0);
-        handle_table(player->table);
-        return 0;
-    }
-
-    if (current_player(player->table) == player) {
-        player->table->turn = next_player(player->table, player->table->turn);
-        table_reset_timeout(player->table);
-    }
-    report(player->table);
-    return 0;
+    CHECK_LOGIN(g_current_player);
+    CHECK_TABLE(g_current_player);
+    CHECK_GAME(g_current_player);
+    return handle_action(g_current_player, ACTION_FOLD, 0);
 }
-
 int check()
 {
-    player_t *player = g_current_player;
-
-    CHECK_LOGIN(player);
-    CHECK_TABLE(player);
-    CHECK_GAME(player);
-    CHECK_IN_TURN(player);
-
-    if (player_check(player) < 0) {
-        send_msg(player, "check failed");
-        return -1;
-    }
-    if (player->table->turn == player->table->dealer) {
-        handle_table(player->table);
-        return 0;
-    }
-
-    broadcast(player->table, "%s check", player->name);
-    player->table->turn = next_player(player->table, player->table->turn);
-    table_reset_timeout(player->table);
-    report(player->table);
-    return 0;
+    CHECK_LOGIN(g_current_player);
+    CHECK_TABLE(g_current_player);
+    CHECK_GAME(g_current_player);
+    CHECK_IN_TURN(g_current_player);
+    return handle_action(g_current_player, ACTION_CHCEK, 0);
+}
+int all_in()
+{
+    CHECK_LOGIN(g_current_player);
+    CHECK_TABLE(g_current_player);
+    CHECK_GAME(g_current_player);
+    CHECK_IN_TURN(g_current_player);
+    return handle_action(g_current_player, ACTION_ALL_IN, 0);
 }
 
 int yyerror(char *s)
@@ -347,7 +298,7 @@ int print_help()
         "help\n"
     ;
 
-    evbuffer_add_printf(bufferevent_get_output(player->bev), "%s", usage);
+    send_msg(player, "%s", usage);
     return 0;
 }
 

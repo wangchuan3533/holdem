@@ -168,3 +168,15 @@ inline int rank_cmp(hand_rank_t r1, hand_rank_t r2)
     return 0;
 }
 
+int hand_to_string(card_t *cards, hand_rank_t rank, char *buffer, int size)
+{
+    int i, offset = 0;
+
+    for (i = 0; i < HAND_NUM; i++) {
+        if (rank.mask & (1u << i)) {
+            offset += snprintf(buffer + offset, size - offset, "%s, ", card_to_string(cards[i]));
+        }
+    }
+    buffer[--offset] = '\0';
+    return offset;
+}

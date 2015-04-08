@@ -23,6 +23,7 @@ typedef struct player_s {
     int bet;
     int chips;
     int all_in;
+    int talked;
     struct table_s *table;
     card_t hand_cards[7];
     hand_rank_t rank;
@@ -95,5 +96,7 @@ player_t *player_create();
 void player_destroy(player_t *player);
 void send_msg(player_t *player, const char *fmt, ...);
 void send_msgv(player_t *player, const char *fmt, va_list ap);
+void send_msg_raw(player_t *player, const char *fmt, ...);
+void send_msgv_raw(player_t *player, const char *fmt, va_list ap);
 int player_to_json(player_t *player, char *buffer, int size);
 #endif

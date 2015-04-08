@@ -39,11 +39,26 @@ void send_msg(player_t *player, const char *fmt, ...)
     va_end(ap);
 }
 
+void send_msg_raw(player_t *player, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
+    va_end(ap);
+}
+
 void send_msgv(player_t *player, const char *fmt, va_list ap)
 {
     evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
     evbuffer_add_printf(bufferevent_get_output(player->bev), "%s", player->prompt);
 }
+
+void send_msgv_raw(player_t *player, const char *fmt, va_list ap)
+{
+    evbuffer_add_vprintf(bufferevent_get_output(player->bev), fmt, ap);
+}
+
+
 
 int player_to_json(player_t *player, char *buffer, int size)
 {
