@@ -9,7 +9,6 @@ struct table_s;
 
 #define USER_STATE_LOGIN     0x01
 #define USER_STATE_TABLE     0x02
-#define USER_STATE_GAME      0x04
 
 typedef unsigned int user_state_t;
 
@@ -30,15 +29,11 @@ typedef struct user_s {
 #define ASSERT_NOT_LOGIN(user)     assert(!((user)->state & USER_STATE_LOGIN))
 #define ASSERT_TABLE(user)         assert((user)->state & USER_STATE_TABLE)
 #define ASSERT_NOT_TABLE(user)     assert(!((user)->state & USER_STATE_TABLE))
-#define ASSERT_GAME(user)          assert((user)->state & USER_STATE_GAME)
-#define ASSERT_NOT_GAME(user)      assert(!((user)->state & USER_STATE_GAME))
 #else
 #define ASSERT_LOGIN(user)
 #define ASSERT_NOT_LOGIN(user)
 #define ASSERT_TABLE(user)
 #define ASSERT_NOT_TABLE(user)
-#define ASSERT_GAME(user)
-#define ASSERT_NOT_GAME(user)
 #endif
 
 #define CHECK_LOGIN(user) do {\
@@ -65,20 +60,6 @@ typedef struct user_s {
 #define CHECK_NOT_TABLE(user) do {\
     if ((user)->state & USER_STATE_TABLE) {\
         send_msg((user), "you are already in table");\
-        return -1;\
-    }\
-} while(0)
-
-#define CHECK_GAME(user) do {\
-    if (!((user)->state & USER_STATE_GAME)) {\
-        send_msg((user), "you are not in game");\
-        return -1;\
-    }\
-} while(0)
-
-#define CHECK_NOT_GAME(user) do {\
-    if ((user)->state & USER_STATE_GAME) {\
-        send_msg((user), "you are already in game");\
         return -1;\
     }\
 } while(0)

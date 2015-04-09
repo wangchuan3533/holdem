@@ -137,9 +137,6 @@ int join_table(const char *name)
         return -1;
     }
 
-    if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
-        handle_table(table);
-    }
     //send_msg(user, "join table %s success", table->name);
     return 0;
 }
@@ -152,9 +149,6 @@ int quit_table()
     CHECK_LOGIN(user);
     CHECK_TABLE(user);
 
-    if (user->state & USER_STATE_GAME) {
-        fold();
-    }
     assert(player_quit(user) == 0);
     send_msg(user, "quit table %s success", table->name);
     return 0;
@@ -229,19 +223,28 @@ int pwd()
     send_msg(user, "root");
     return 0;
 }
+
+int start()
+{
+    CHECK_LOGIN(g_current_user);
+    CHECK_TABLE(g_current_user);
+    table_reset(g_current_user->table);
+    handle_table(g_current_user->table);
+    return 0;
+}
+
 int bet(int bet)
 {
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
-    CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
     return handle_action(g_current_user->table, g_current_user->index, ACTION_BET, bet);
 }
+
 int raise_(int raise)
 {
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
-    CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
     return handle_action(g_current_user->table, g_current_user->index, ACTION_RAISE, raise);
 }
@@ -249,7 +252,6 @@ int call()
 {
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
-    CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
     return handle_action(g_current_user->table, g_current_user->index, ACTION_CALL, 0);
 }
@@ -257,7 +259,6 @@ int fold()
 {
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
-    CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
     return handle_action(g_current_user->table, g_current_user->index, ACTION_FOLD, 0);
 }
@@ -265,7 +266,6 @@ int check()
 {
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
-    CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
     return handle_action(g_current_user->table, g_current_user->index, ACTION_CHCEK, 0);
 }
@@ -273,7 +273,6 @@ int all_in()
 {
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
-    CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
     return handle_action(g_current_user->table, g_current_user->index, ACTION_ALL_IN, 0);
 }

@@ -17,6 +17,7 @@ int show_tables();
 int show_players();
 int show_players_in_table(const char *name);
 int pwd();
+int start();
 int join();
 int bet(int);
 int raise_(int);

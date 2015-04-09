@@ -40,7 +40,6 @@ typedef struct player_s {
     card_t hand_cards[7];
     hand_rank_t rank;
     user_t *user;
-    int left;
 } player_t;
 
 typedef enum table_state_e {
@@ -118,7 +117,7 @@ void table_river(table_t *table);
 void table_showdown(table_t *table);
 
 void table_init_timeout(table_t *table);
-void table_reset_timeout(table_t *table);
+void table_reset_timeout(table_t *table, int left);
 void table_clear_timeout(table_t *table);
 
 int table_check_winner(table_t *table);

@@ -65,7 +65,6 @@ void table_reset(table_t *table)
         table->players[i]->talked     = 0;
         table->players[i]->rank.level = 0;
         table->players[i]->rank.score = 0;
-        table->players[i]->left       = 0;
         table->players[i]->pot_index  = -1;
 
         if (table->players[i]->user) {
@@ -125,7 +124,7 @@ void table_pre_flop(table_t *table)
     table->bet  = table->minimum_bet;
     table->turn = next_player(table, table->big_blind);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CALL | ACTION_RAISE;
-    table_reset_timeout(table);
+    table_reset_timeout(table, 0);
     table->state = TABLE_STATE_PREFLOP;
 
     report(table);
@@ -153,7 +152,7 @@ void table_flop(table_t *table)
     table->bet  = 0;
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
-    table_reset_timeout(table);
+    table_reset_timeout(table, 0);
     report(table);
 }
 
@@ -174,7 +173,7 @@ void table_turn(table_t *table)
     table->bet  = 0;
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
-    table_reset_timeout(table);
+    table_reset_timeout(table, 0);
     report(table);
 }
 
@@ -195,7 +194,7 @@ void table_river(table_t *table)
     table->bet  = 0;
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
-    table_reset_timeout(table);
+    table_reset_timeout(table, 0);
     report(table);
 }
 
@@ -268,7 +267,6 @@ void table_showdown(table_t *table)
     }
 
     table_reset(table);
-    handle_table(table);
 }
 
 int table_check_winner(table_t *table)
@@ -278,7 +276,7 @@ int table_check_winner(table_t *table)
     assert(table->num_active == 1 && table->num_all_in == 0);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i] && (table->players[i]->state == PLAYER_STATE_ACTIVE)) {
+        if (table->players[i]->state == PLAYER_STATE_ACTIVE || table->players[i]->state == PLAYER_STATE_ALL_IN) {
             broadcast(table, "[WINNER] %s [POT] %d", table->players[i]->user->name, table->pot);
             table->players[i]->chips += table->pot;
             table_reset(table);
@@ -293,9 +291,9 @@ inline void table_init_timeout(table_t *table)
     table->ev_timeout = event_new(table->base, -1, 0, timeoutcb, table);
 }
 
-inline void table_reset_timeout(table_t *table)
+inline void table_reset_timeout(table_t *table, int offline)
 {
-    event_add(table->ev_timeout, &_timeout_minute);
+    event_add(table->ev_timeout, offline ? &_timeout_second : &_timeout_minute);
 }
 
 inline void table_clear_timeout(table_t *table)
@@ -337,11 +335,15 @@ int player_join(table_t *table, user_t *user)
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]->user == NULL) {
+            if (user->money > 1000) {
+                table->players[i]->chips = 1000;
+                user->money -= 1000;
+            }
             table->players[i]->user = user;
             user->table = table;
-            user->state |= USER_STATE_TABLE;
-            user->index = i;
             table->num_players++;
+            user->index = i;
+            user->state |= USER_STATE_TABLE;
             broadcast(table, "%s joined", user->name);
             return TEXAS_RET_SUCCESS;
         }
@@ -352,17 +354,19 @@ int player_join(table_t *table, user_t *user)
 
 int player_quit(user_t *user)
 {
-    if (user->table->players[user->index]->user == user) {
-        user->table->num_players--;
-        user->table->players[user->index]->user = NULL;
-        user->table = NULL;
-        broadcast(user->table, "%s quit", user->name);
-        user->state &= ~USER_STATE_TABLE;
-        return TEXAS_RET_SUCCESS;
+    assert(user->table->players[user->index]->user == user);
+
+    if (user->table->players[user->index]->chips > 0) {
+        user->money += user->table->players[user->index]->chips;
+        user->table->players[user->index]->chips = 0;
     }
-    // fatal
-    err_quit("quit");
-    return TEXAS_RET_FAILURE;
+    user->table->players[user->index]->user = NULL;
+    user->table = NULL;
+    user->table->num_players--;
+    user->index = -1;
+    user->state &= ~USER_STATE_TABLE;
+    broadcast(user->table, "%s quit", user->name);
+    return TEXAS_RET_SUCCESS;
 }
 
 int next_player(table_t *table, int index)
@@ -550,14 +554,14 @@ int handle_action(table_t *table, int index, action_t action, int value)
     // generate available actions
     next = next_player(table, table->turn);
 
-    if (next < 0 && table->num_active == 1) {
-        if (table->num_all_in > 0) {
-            table_showdown(table);
+    if (next < 0) {
+        if (table->num_all_in + table->num_active == 1) {
+            handle_pot(table);
+            assert(table_check_winner(table) == 0);
             return TEXAS_RET_SUCCESS;
         }
-        handle_pot(table);
-        assert(table_check_winner(table) == 0);
-        handle_table(table);
+        assert(table->num_all_in + table->num_active > 1);
+        table_showdown(table);
         return TEXAS_RET_SUCCESS;
     }
 
@@ -593,7 +597,7 @@ int handle_action(table_t *table, int index, action_t action, int value)
     }
 
     table->turn = next;
-    table_reset_timeout(table);
+    table_reset_timeout(table, (player_next->user == NULL));
     report(table);
     return TEXAS_RET_SUCCESS;
 }
