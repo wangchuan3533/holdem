@@ -1,6 +1,6 @@
 #include "texas_holdem.h"
 #include "card.h"
-#include "player.h"
+#include "user.h"
 #include "table.h"
 #include "list.h"
 #include "handler.h"
@@ -10,11 +10,11 @@
 void do_read(evutil_socket_t fd, short events, void *arg);
 void do_write(evutil_socket_t fd, short events, void *arg);
 
-int handle(player_t *player, const char *line)
+int handle(user_t *user, const char *line)
 {
     char line_buffer[MAX_LINE];
 
-    g_current_player = player;
+    g_current_user = user;
     snprintf(line_buffer, sizeof(line_buffer), "%s\n", line);
     yy_scan_string(line_buffer);
     yyparse();
@@ -24,21 +24,21 @@ int handle(player_t *player, const char *line)
 
 void readcb(struct bufferevent *bev, void *ctx)
 {
-    player_t *player = (player_t *)ctx;
+    user_t *user = (user_t *)ctx;
     char *line;
     size_t n;
 
-    assert(player);
+    assert(user);
     while ((line = evbuffer_readln(bufferevent_get_input(bev), &n, EVBUFFER_EOL_CRLF))) {
-        handle(player, line);
+        handle(user, line);
     }
 }
 
 void errorcb(struct bufferevent *bev, short error, void *ctx)
 {
-    player_t *player = (player_t *)ctx;
+    user_t *user = (user_t *)ctx;
 
-    assert(player);
+    assert(user);
     if (error & BEV_EVENT_EOF) {
         /* connection has been closed, do any clean up here */
         /* ... */
@@ -50,16 +50,18 @@ void errorcb(struct bufferevent *bev, short error, void *ctx)
         /* ... */
     }
 
-    handle(player, "exit");
+    handle(user, "exit");
 }
 
 void timeoutcb(evutil_socket_t fd, short events, void *arg)
 {
     table_t *table = (table_t *)arg;
 
-    assert(current_player(table));
-    player_t *player = current_player(table);
-    handle(player, "fold");
+    /*
+    assert(current_user(table));
+    user_t *user = current_user(table);
+    handle(user, "fold");
+    */
 }
 
 void do_accept(evutil_socket_t listener, short event, void *arg)
@@ -68,7 +70,7 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
     struct sockaddr_storage ss;
     socklen_t slen = sizeof(ss);
     int fd = accept(listener, (struct sockaddr*)&ss, &slen);
-    player_t *player;
+    user_t *user;
     if (fd < 0) {
         perror("accept");
     } else if (fd > FD_SETSIZE) {
@@ -76,14 +78,14 @@ void do_accept(evutil_socket_t listener, short event, void *arg)
     } else {
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(fd);
-        player = player_create();
-        if (player == NULL) {
+        user = user_create();
+        if (user == NULL) {
             close(fd);
             return;
         }
         bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-        player->bev = bev;
-        bufferevent_setcb(bev, readcb, NULL, errorcb, player);
+        user->bev = bev;
+        bufferevent_setcb(bev, readcb, NULL, errorcb, user);
         bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
     }

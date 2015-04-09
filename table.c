@@ -16,8 +16,12 @@ table_t *table_create()
     if (table == NULL) {
         return NULL;
     }
-
     memset(table, 0, sizeof(table_t));
+    table->players = (player_t *)malloc(TABLE_MAX_PLAYERS * sizeof(player_t));
+    if (table->players == NULL) {
+        return NULL;
+    }
+    memset(table->players, 0, TABLE_MAX_PLAYERS * sizeof(player_t));
     g_num_tables++;
     return table;
 }
@@ -44,6 +48,7 @@ void table_reset(table_t *table)
             table->players[i]->talked = 0;
             table->players[i]->rank.level = 0;
             table->players[i]->rank.score = 0;
+            table->players[i]->pot = 10000;
         }
     }
 
@@ -126,9 +131,6 @@ void table_flop(table_t *table)
             if (table->players[i]->state & PLAYER_STATE_GAME) {
                 table->players[i]->bet = 0;
                 table->players[i]->talked = 0;
-                table->players[i]->hand_cards[2] = table->community_cards[0];
-                table->players[i]->hand_cards[3] = table->community_cards[1];
-                table->players[i]->hand_cards[4] = table->community_cards[2];
             }
         }
     }
@@ -157,7 +159,6 @@ void table_turn(table_t *table)
             ASSERT_TABLE(table->players[i]);
             table->players[i]->bet = 0;
             table->players[i]->talked = 0;
-            table->players[i]->hand_cards[5] = table->community_cards[3];
         }
     }
     //broadcast(table, "[\"turn\",[\"%s\"]]\n",card_to_string(table->community_cards[3]));
@@ -182,7 +183,6 @@ void table_river(table_t *table)
             ASSERT_TABLE(table->players[i]);
             table->players[i]->bet = 0;
             table->players[i]->talked = 0;
-            table->players[i]->hand_cards[6] = table->community_cards[4];
         }
     }
     //broadcast(table, "[\"river\",[\"%s\"]]\n", card_to_string(table->community_cards[3]));
@@ -197,10 +197,25 @@ void table_river(table_t *table)
 
 void table_showdown(table_t *table)
 {
-    int i;
+    int i, j;
 
     player_t *winner;
     hand_rank_t max = {0, 0, 0};
+
+    switch (table->state) {
+    case TABLE_STATE_PREFLOP:
+        table->community_cards[0] = get_card(&table->deck);
+        table->community_cards[1] = get_card(&table->deck);
+        table->community_cards[2] = get_card(&table->deck);
+    case TABLE_STATE_FLOP:
+        table->community_cards[3] = get_card(&table->deck);
+    case TABLE_STATE_TURN:
+        table->community_cards[4] = get_card(&table->deck);
+    case TABLE_STATE_RIVER:
+        break;
+    default:
+        err_quit("default");
+    }
 
     broadcast(table, "[SHOWDOWN] community cards is %s, %s, %s, %s, %s",
             card_to_string(table->community_cards[0]),
@@ -212,6 +227,9 @@ void table_showdown(table_t *table)
         if (table->players[i]) {
             ASSERT_LOGIN(table->players[i]);
             ASSERT_TABLE(table->players[i]);
+            for (j = 0; j < 5; j++) {
+                table->players[i]->hand_cards[j + 2] = table->community_cards[j];
+            }
             table->players[i]->rank = calc_rank(table->players[i]->hand_cards);
             hand_to_string(table->players[i]->hand_cards, table->players[i]->rank, table->buffer, sizeof(table->buffer));
             broadcast(table, "player %s's cards is %s, %s. rank is [%s], hand is %s, score is %d",
@@ -339,23 +357,24 @@ void broadcast(table_t *table, const char *fmt, ...)
     va_end(ap);
 }
 
-int player_join(table_t *table, player_t *player)
+int user_join(table_t *table, user_t *user)
 {
     int i;
 
-    ASSERT_LOGIN(player);
-    ASSERT_NOT_TABLE(player);
+    ASSERT_LOGIN(user);
+    ASSERT_NOT_TABLE(user);
     if (table->num_players >= TABLE_MAX_PLAYERS) {
         return TEXAS_RET_MAX_PLAYER;
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i] == NULL) {
-            table->players[i] = player;
-            player->table = table;
-            player->state |= PLAYER_STATE_TABLE;
+        if (table->players[i]->user == NULL) {
+            table->players[i]->user = user;
+            user->table = table;
+            user->state |= PLAYER_STATE_TABLE;
+            user->index = i;
             table->num_players++;
-            //broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", player->name);
-            broadcast(table, "%s joined", player->name);
+            //broadcast(table, "[\"join\",{\"name\":\"%s\"}]\n", user->name);
+            broadcast(table, "%s joined", user->name);
             return TEXAS_RET_SUCCESS;
         }
     }
@@ -363,22 +382,20 @@ int player_join(table_t *table, player_t *player)
     return TEXAS_RET_FAILURE;
 }
 
-int player_quit(player_t *player)
+int user_quit(user_t *user)
 {
     int i;
 
-    ASSERT_LOGIN(player);
-    ASSERT_TABLE(player);
-    ASSERT_NOT_GAME(player);
+    ASSERT_LOGIN(user);
+    ASSERT_TABLE(user);
+    ASSERT_NOT_GAME(user);
 
-    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (player->table->players[i] == player) {
-            player->table->num_players--;
-            player->table->players[i] = NULL;
-            player->table = NULL;
-            player->state &= ~PLAYER_STATE_TABLE;
-            return TEXAS_RET_SUCCESS;
-        }
+    if (user->table->users[i] == user) {
+        user->table->num_users--;
+        user->table->users[i] = NULL;
+        user->table = NULL;
+        user->state &= ~PLAYER_STATE_TABLE;
+        return TEXAS_RET_SUCCESS;
     }
     // fatal
     err_quit("quit");
@@ -604,14 +621,12 @@ int handle_action(player_t *player, action_t action, int value)
         // generate available actions
         next = next_player(table, table->turn);
         if (next < 0 && table->num_all_in == table->num_playing) {
-            do {
-                handle_table(table);
-            } while (table->state > TABLE_STATE_PREFLOP);
+            table_showdown(table);
             return TEXAS_RET_SUCCESS;
         }
+
         player_next = table->players[next];
         assert(player_next);
-
         if (player_next->bet == table->bet && player_next->talked == 1) {
             handle_table(table);
             return TEXAS_RET_SUCCESS;

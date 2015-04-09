@@ -1,290 +1,291 @@
 #include "texas_holdem.h"
 #include "handler.h"
 #include "card.h"
-#include "player.h"
+#include "user.h"
 #include "hand.h"
 #include "table.h"
 
 int reg(const char *name, const char *password)
 {
-    
-    player_t *tmp, *player = g_current_player;
-    char val_buf[128];
-    size_t val_len = sizeof(val_buf);
+    user_t *tmp, *user = g_current_user;
 
-    CHECK_NOT_LOGIN(player);
+    CHECK_NOT_LOGIN(user);
 
-    if (texas_db_get((void *)name, strlen(name), (void *)val_buf, &val_len) == 0) {
-        send_msg(player, "name %s already exist", name);
-        return -1;
-    }
-    if (texas_db_put((void *)name, strlen(name), (void *)password, strlen(password)) != 0) {
-        send_msg(player, "save to db failed %s", name);
+    if (user_load(name, user) == 0) {
+        send_msg(user, "name %s already exist", name);
         return -1;
     }
 
-    HASH_FIND(hh, g_players, name, strlen(name), tmp);
-    if (tmp) {
-        send_msg(player, "name %s already exist", name);
+    strncpy(user->name, name, sizeof(user->name));
+    strncpy(user->password, password, sizeof(user->password));
+    snprintf(user->prompt, sizeof(user->prompt), "\n>");
+    user->money = 100000;
+
+    if (user_save(user) < 0) {
+        send_msg(user, "save user to db failed %s", name);
         return -1;
     }
-    strncpy(player->name, name, sizeof(player->name));
-    HASH_ADD(hh, g_players, name, strlen(player->name), player);
-    player->state |= PLAYER_STATE_LOGIN;
-    send_msg(player, "welcome to texas holdem, %s", player->name);
+
+    HASH_ADD(hh, g_users, name, strlen(user->name), user);
+    user->state |= USER_STATE_LOGIN;
+    send_msg(user, "welcome to texas holdem, %s", user->name);
     return 0;
 }
 
 int login(const char *name, const char *password)
 {
     
-    player_t *tmp, *player = g_current_player;
-    char val_buf[128];
-    size_t val_len = sizeof(val_buf);
+    user_t *tmp, *user = g_current_user;
 
-    CHECK_NOT_LOGIN(player);
-    ASSERT_NOT_TABLE(player);
-    ASSERT_NOT_GAME(player);
+    CHECK_NOT_LOGIN(user);
+    ASSERT_NOT_TABLE(user);
+    ASSERT_NOT_GAME(user);
 
-    if (texas_db_get((void *)name, strlen(name), (void *)val_buf, &val_len) != 0) {
-        send_msg(player, "player %s dose not exist", name);
+    if (user_load(name, user) < 0) {
+        send_msg(user, "user %s dose not exist", name);
         return -1;
     }
-    if (strlen(password) != val_len || strncmp(password, val_buf, val_len) != 0) {
-        send_msg(player, "wrong password");
+    if (strcmp(password, user->password) != 0) {
+        send_msg(user, "wrong password");
         return -1;
     }
-    HASH_FIND(hh, g_players, name, strlen(name), tmp);
+    HASH_FIND(hh, g_users, name, strlen(name), tmp);
     if (tmp) {
-        send_msg(player, "name %s already exist", name);
+        send_msg(user, "name %s already login", name);
         return -1;
     }
-    strncpy(player->name, name, sizeof(player->name));
-    HASH_ADD(hh, g_players, name, strlen(player->name), player);
-    player->state |= PLAYER_STATE_LOGIN;
-    send_msg(player, "welcome to texas holdem, %s", player->name);
+    HASH_ADD(hh, g_users, name, strlen(user->name), user);
+    user->state |= USER_STATE_LOGIN;
+    send_msg(user, "welcome to texas holdem, %s", user->name);
     return 0;
 }
 
 int logout()
 {
-    player_t *tmp, *player = g_current_player;
+    user_t *tmp, *user = g_current_user;
 
-    CHECK_LOGIN(player);
+    CHECK_LOGIN(user);
 
-    if (player->state & PLAYER_STATE_TABLE) {
+    if (user->state & USER_STATE_TABLE) {
         assert(quit_table() == 0);
     }
-    HASH_FIND(hh, g_players, player->name, strlen(player->name), tmp);
-    assert(tmp == player);
-    HASH_DELETE(hh, g_players, player);
-    send_msg(player, "bye %s", player->name);
-    player->state &= ~PLAYER_STATE_LOGIN;
+    HASH_FIND(hh, g_users, user->name, strlen(user->name), tmp);
+    assert(tmp == user);
+    HASH_DELETE(hh, g_users, user);
+
+    if (user_save(user) < 0) {
+        send_msg(user, "save user to db failed %s", name);
+        return -1;
+    }
+
+    send_msg(user, "bye %s", user->name);
+    user->state &= ~USER_STATE_LOGIN;
     return 0;
 }
 
 int create_table(const char *name)
 {
     table_t *table, *tmp;
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
 
-    CHECK_LOGIN(player);
-    CHECK_NOT_TABLE(player);
+    CHECK_LOGIN(user);
+    CHECK_NOT_TABLE(user);
 
     HASH_FIND(hh, g_tables, name, strlen(name), tmp);
     if (tmp) {
-        send_msg(player, "table %s already exist", name);
+        send_msg(user, "table %s already exist", name);
         return -1;
     }
 
     table = table_create();
     if (table == NULL) {
-        send_msg(player, "table %s created failed", name);
+        send_msg(user, "table %s created failed", name);
         return -1;
     }
-    table->base = bufferevent_get_base(player->bev);
+    table->base = bufferevent_get_base(user->bev);
     table_init_timeout(table);
     strncpy(table->name, name, sizeof(table->name));
     HASH_ADD(hh, g_tables, name, strlen(table->name), table);
-    if (player_join(table, player) < 0) {
-        send_msg(player, "join table %s failed", table->name);
+    if (user_join(table, user) < 0) {
+        send_msg(user, "join table %s failed", table->name);
         return -1;
     }
 
     table_reset(table);
-    //send_msg(player, "table %s created", table->name);
+    //send_msg(user, "table %s created", table->name);
     return 0;
 }
 
 int join_table(const char *name)
 {
     table_t *table;
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
 
-    CHECK_LOGIN(player);
-    CHECK_NOT_TABLE(player);
+    CHECK_LOGIN(user);
+    CHECK_NOT_TABLE(user);
 
     HASH_FIND(hh, g_tables, name, strlen(name), table);
     if (!table) {
-        send_msg(player, "table %s dose not exist", name);
+        send_msg(user, "table %s dose not exist", name);
         return -1;
     }
 
-    if (player_join(table, player) < 0) {
-        send_msg(player, "join table %s failed", table->name);
+    if (user_join(table, user) < 0) {
+        send_msg(user, "join table %s failed", table->name);
         return -1;
     }
 
-    if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
+    if (table->num_users >= MIN_USERS && table->state == TABLE_STATE_WAITING) {
         handle_table(table);
     }
-    //send_msg(player, "join table %s success", table->name);
+    //send_msg(user, "join table %s success", table->name);
     return 0;
 }
 
 int quit_table()
 {
-    player_t *player = g_current_player;
-    table_t *table = player->table;
+    user_t *user = g_current_user;
+    table_t *table = user->table;
 
-    CHECK_LOGIN(player);
-    CHECK_TABLE(player);
+    CHECK_LOGIN(user);
+    CHECK_TABLE(user);
 
-    if (player->state & PLAYER_STATE_GAME) {
+    if (user->state & USER_STATE_GAME) {
         fold();
     }
-    assert(player_quit(player) == 0);
-    send_msg(player, "quit table %s success", table->name);
+    assert(user_quit(user) == 0);
+    send_msg(user, "quit table %s success", table->name);
     return 0;
 }
 
 int exit_game()
 {
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
 
-    if (player->state & PLAYER_STATE_LOGIN) {
+    if (user->state & USER_STATE_LOGIN) {
         assert(logout() == 0);
     }
-    send_msg(player, "bye");
-    bufferevent_free(player->bev);
-    player_destroy(player);
+    send_msg(user, "bye");
+    bufferevent_free(user->bev);
+    user_destroy(user);
     return 0;
 }
 
 int show_tables()
 {
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
     table_t *table, *tmp;
 
-    CHECK_LOGIN(player);
+    CHECK_LOGIN(user);
     HASH_ITER(hh, g_tables, table, tmp) {
-        send_msg_raw(player, "%s ", table->name);
+        send_msg_raw(user, "%s ", table->name);
     }
-    send_msg(player, "");
+    send_msg(user, "");
     return 0;
 }
 
-int show_players()
+int show_users()
 {
-    player_t *tmp1, *tmp2, *player = g_current_player;
+    user_t *tmp1, *tmp2, *user = g_current_user;
 
-    HASH_ITER(hh, g_players, tmp1, tmp2) {
-        send_msg_raw(player, "%s ", tmp1->name);
+    HASH_ITER(hh, g_users, tmp1, tmp2) {
+        send_msg_raw(user, "%s ", tmp1->name);
     }
-    send_msg(player, "");
+    send_msg(user, "");
     return 0;
 }
 
-int show_players_in_table(const char *name)
+int show_users_in_table(const char *name)
 {
     table_t *table;
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
     int i;
 
-    CHECK_LOGIN(player);
+    CHECK_LOGIN(user);
     HASH_FIND(hh, g_tables, name, strlen(name), table);
     if (!table) {
-        send_msg(player, "table %s dose not exist", name);
+        send_msg(user, "table %s dose not exist", name);
         return -1;
     }
-    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]) {
-            send_msg_raw(player, "%s ", table->players[i]->name);
+    for (i = 0; i < TABLE_MAX_USERS; i++) {
+        if (table->players[i]->user) {
+            send_msg_raw(user, "%s ", table->users[i]->name);
         }
     }
-    send_msg(player, "");
+    send_msg(user, "");
     return 0;
 }
 
 int pwd()
 {
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
 
-    if (player->state & PLAYER_STATE_TABLE) {
-        send_msg(player, "%s", player->table->name);
+    if (user->state & USER_STATE_TABLE) {
+        send_msg(user, "%s", user->table->name);
         return 0;
     }
-    send_msg(player, "root");
+    send_msg(user, "root");
     return 0;
 }
 int bet(int bet)
 {
-    CHECK_LOGIN(g_current_player);
-    CHECK_TABLE(g_current_player);
-    CHECK_GAME(g_current_player);
-    CHECK_IN_TURN(g_current_player);
-    return handle_action(g_current_player, ACTION_BET, bet);
+    CHECK_LOGIN(g_current_user);
+    CHECK_TABLE(g_current_user);
+    CHECK_GAME(g_current_user);
+    CHECK_IN_TURN(g_current_user);
+    return handle_action(g_current_user, ACTION_BET, bet);
 }
 int raise_(int raise)
 {
-    CHECK_LOGIN(g_current_player);
-    CHECK_TABLE(g_current_player);
-    CHECK_GAME(g_current_player);
-    CHECK_IN_TURN(g_current_player);
-    return handle_action(g_current_player, ACTION_RAISE, raise);
+    CHECK_LOGIN(g_current_user);
+    CHECK_TABLE(g_current_user);
+    CHECK_GAME(g_current_user);
+    CHECK_IN_TURN(g_current_user);
+    return handle_action(g_current_user, ACTION_RAISE, raise);
 }
 int call()
 {
-    CHECK_LOGIN(g_current_player);
-    CHECK_TABLE(g_current_player);
-    CHECK_GAME(g_current_player);
-    CHECK_IN_TURN(g_current_player);
-    return handle_action(g_current_player, ACTION_CALL, 0);
+    CHECK_LOGIN(g_current_user);
+    CHECK_TABLE(g_current_user);
+    CHECK_GAME(g_current_user);
+    CHECK_IN_TURN(g_current_user);
+    return handle_action(g_current_user, ACTION_CALL, 0);
 }
 int fold()
 {
-    CHECK_LOGIN(g_current_player);
-    CHECK_TABLE(g_current_player);
-    CHECK_GAME(g_current_player);
-    return handle_action(g_current_player, ACTION_FOLD, 0);
+    CHECK_LOGIN(g_current_user);
+    CHECK_TABLE(g_current_user);
+    CHECK_GAME(g_current_user);
+    CHECK_IN_TURN(g_current_user);
+    return handle_action(g_current_user, ACTION_FOLD, 0);
 }
 int check()
 {
-    CHECK_LOGIN(g_current_player);
-    CHECK_TABLE(g_current_player);
-    CHECK_GAME(g_current_player);
-    CHECK_IN_TURN(g_current_player);
-    return handle_action(g_current_player, ACTION_CHCEK, 0);
+    CHECK_LOGIN(g_current_user);
+    CHECK_TABLE(g_current_user);
+    CHECK_GAME(g_current_user);
+    CHECK_IN_TURN(g_current_user);
+    return handle_action(g_current_user, ACTION_CHCEK, 0);
 }
 int all_in()
 {
-    CHECK_LOGIN(g_current_player);
-    CHECK_TABLE(g_current_player);
-    CHECK_GAME(g_current_player);
-    CHECK_IN_TURN(g_current_player);
-    return handle_action(g_current_player, ACTION_ALL_IN, 0);
+    CHECK_LOGIN(g_current_user);
+    CHECK_TABLE(g_current_user);
+    CHECK_GAME(g_current_user);
+    CHECK_IN_TURN(g_current_user);
+    return handle_action(g_current_user, ACTION_ALL_IN, 0);
 }
 
 int yyerror(char *s)
 {
-    player_t *player = g_current_player;
-    send_msg(player, "%s", s);
+    user_t *user = g_current_user;
+    send_msg(user, "%s", s);
     return 0;
 }
 
 int print_help()
 {
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
     const char *usage =
         "login <user_name>\n"
         "logout\n"
@@ -298,38 +299,37 @@ int print_help()
         "help\n"
     ;
 
-    send_msg(player, "%s", usage);
+    send_msg(user, "%s", usage);
     return 0;
 }
 
 int reply(const char *fmt, ...)
 {
     va_list ap;
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
 
     va_start(ap, fmt);
-    send_msgv(player, fmt, ap);
+    send_msgv(user, fmt, ap);
     va_end(ap);
     return 0;
 }
 
 int chat(const char *str)
 {
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
 
-    CHECK_LOGIN(player);
-    CHECK_TABLE(player);
-
-    broadcast(player->table, "[CHAT] %s: %s", player->name, str);
+    CHECK_LOGIN(user);
+    CHECK_TABLE(user);
+    broadcast(user->table, "[CHAT] %s: %s", user->name, str);
 
     return 0;
 }
 
 int prompt(const char *str)
 {
-    player_t *player = g_current_player;
+    user_t *user = g_current_user;
 
-    snprintf(player->prompt, sizeof(player->prompt), "\n%s", str);
-    send_msg(player, "set prompt success");
+    snprintf(user->prompt, sizeof(user->prompt), "\n%s", str);
+    send_msg(user, "set prompt success");
     return 0;
 }

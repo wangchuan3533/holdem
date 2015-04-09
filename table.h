@@ -4,13 +4,14 @@
 #include "uthash.h"
 #include "list.h"
 #include "card.h"
-#include "player.h"
+#include "user.h"
 
 #define TABLE_TMP_BUFFER_SIZE 1024
 #define TABLE_MAX_PLAYERS 10
 #define MIN_PLAYERS 3
 #define MAX_TABLES 1024
 
+typedef unsigned int action_t;
 #define ACTION_BET      0x01
 #define ACTION_RAISE    0x02
 #define ACTION_CALL     0x04
@@ -18,7 +19,17 @@
 #define ACTION_FOLD     0x10
 #define ACTION_ALL_IN   0x20
 
-typedef unsigned int action_t;
+typedef struct player_s {
+    int pot;
+    int bet;
+    int chips;
+    int money;
+    int all_in;
+    int talked;
+    card_t hand_cards[7];
+    hand_rank_t rank;
+    user_t *user;
+} player_t;
 
 typedef enum table_state_e {
     TABLE_STATE_WAITING,
