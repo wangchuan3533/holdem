@@ -31,16 +31,16 @@ int texas_db_close()
     return 0;
 }
 
-int texas_db_put(void *key, size_t key_len, void *value, size_t val_len)
+int texas_db_put(const void *key, size_t key_len, const void *value, size_t val_len)
 {
     int ret;
     DBT k, v;
 
     memset(&k, 0, sizeof(k));
     memset(&v, 0, sizeof(v));
-    k.data = key;
+    k.data = (void *)key;
     k.size = key_len;
-    v.data = value;
+    v.data = (void *)value;
     v.size = val_len;
 
     if ((ret = g_db->put(g_db, NULL, &k, &v, 0)) != 0) {
@@ -54,14 +54,14 @@ int texas_db_put(void *key, size_t key_len, void *value, size_t val_len)
     return 0;
 }
 
-int texas_db_get(void *key, size_t key_len, void *value, size_t *val_len)
+int texas_db_get(const void *key, size_t key_len, void *value, size_t *val_len)
 {
     int ret;
     DBT k, v;
 
     memset(&k, 0, sizeof(k));
     memset(&v, 0, sizeof(v));
-    k.data = key;
+    k.data = (void *)key;
     k.size = key_len;
     v.data = NULL;
     v.size = 0;

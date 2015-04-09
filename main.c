@@ -57,11 +57,7 @@ void timeoutcb(evutil_socket_t fd, short events, void *arg)
 {
     table_t *table = (table_t *)arg;
 
-    /*
-    assert(current_user(table));
-    user_t *user = current_user(table);
-    handle(user, "fold");
-    */
+    handle_action(table, table->turn, ACTION_FOLD, 0);
 }
 
 void do_accept(evutil_socket_t listener, short event, void *arg)

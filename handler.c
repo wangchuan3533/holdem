@@ -4,10 +4,11 @@
 #include "user.h"
 #include "hand.h"
 #include "table.h"
+#include "sha1.h"
 
 int reg(const char *name, const char *password)
 {
-    user_t *tmp, *user = g_current_user;
+    user_t *user = g_current_user;
 
     CHECK_NOT_LOGIN(user);
 
@@ -17,8 +18,8 @@ int reg(const char *name, const char *password)
     }
 
     strncpy(user->name, name, sizeof(user->name));
-    strncpy(user->password, password, sizeof(user->password));
     snprintf(user->prompt, sizeof(user->prompt), "\n>");
+    sha1(user->password, password, strlen(password) << 3);
     user->money = 100000;
 
     if (user_save(user) < 0) {
@@ -36,16 +37,17 @@ int login(const char *name, const char *password)
 {
     
     user_t *tmp, *user = g_current_user;
+    char sha1_buf[20];
 
     CHECK_NOT_LOGIN(user);
     ASSERT_NOT_TABLE(user);
-    ASSERT_NOT_GAME(user);
 
     if (user_load(name, user) < 0) {
         send_msg(user, "user %s dose not exist", name);
         return -1;
     }
-    if (strcmp(password, user->password) != 0) {
+    sha1(sha1_buf, password, strlen(password) << 3);
+    if (bcmp(sha1_buf, user->password, 20) != 0) {
         send_msg(user, "wrong password");
         return -1;
     }
@@ -74,7 +76,7 @@ int logout()
     HASH_DELETE(hh, g_users, user);
 
     if (user_save(user) < 0) {
-        send_msg(user, "save user to db failed %s", name);
+        send_msg(user, "save user to db failed %s", user->name);
         return -1;
     }
 
@@ -106,7 +108,7 @@ int create_table(const char *name)
     table_init_timeout(table);
     strncpy(table->name, name, sizeof(table->name));
     HASH_ADD(hh, g_tables, name, strlen(table->name), table);
-    if (user_join(table, user) < 0) {
+    if (player_join(table, user) < 0) {
         send_msg(user, "join table %s failed", table->name);
         return -1;
     }
@@ -130,12 +132,12 @@ int join_table(const char *name)
         return -1;
     }
 
-    if (user_join(table, user) < 0) {
+    if (player_join(table, user) < 0) {
         send_msg(user, "join table %s failed", table->name);
         return -1;
     }
 
-    if (table->num_users >= MIN_USERS && table->state == TABLE_STATE_WAITING) {
+    if (table->num_players >= MIN_PLAYERS && table->state == TABLE_STATE_WAITING) {
         handle_table(table);
     }
     //send_msg(user, "join table %s success", table->name);
@@ -153,7 +155,7 @@ int quit_table()
     if (user->state & USER_STATE_GAME) {
         fold();
     }
-    assert(user_quit(user) == 0);
+    assert(player_quit(user) == 0);
     send_msg(user, "quit table %s success", table->name);
     return 0;
 }
@@ -184,7 +186,7 @@ int show_tables()
     return 0;
 }
 
-int show_users()
+int show_players()
 {
     user_t *tmp1, *tmp2, *user = g_current_user;
 
@@ -195,7 +197,7 @@ int show_users()
     return 0;
 }
 
-int show_users_in_table(const char *name)
+int show_players_in_table(const char *name)
 {
     table_t *table;
     user_t *user = g_current_user;
@@ -207,9 +209,9 @@ int show_users_in_table(const char *name)
         send_msg(user, "table %s dose not exist", name);
         return -1;
     }
-    for (i = 0; i < TABLE_MAX_USERS; i++) {
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]->user) {
-            send_msg_raw(user, "%s ", table->users[i]->name);
+            send_msg_raw(user, "%s ", table->players[i]->user->name);
         }
     }
     send_msg(user, "");
@@ -233,7 +235,7 @@ int bet(int bet)
     CHECK_TABLE(g_current_user);
     CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
-    return handle_action(g_current_user, ACTION_BET, bet);
+    return handle_action(g_current_user->table, g_current_user->index, ACTION_BET, bet);
 }
 int raise_(int raise)
 {
@@ -241,7 +243,7 @@ int raise_(int raise)
     CHECK_TABLE(g_current_user);
     CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
-    return handle_action(g_current_user, ACTION_RAISE, raise);
+    return handle_action(g_current_user->table, g_current_user->index, ACTION_RAISE, raise);
 }
 int call()
 {
@@ -249,7 +251,7 @@ int call()
     CHECK_TABLE(g_current_user);
     CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
-    return handle_action(g_current_user, ACTION_CALL, 0);
+    return handle_action(g_current_user->table, g_current_user->index, ACTION_CALL, 0);
 }
 int fold()
 {
@@ -257,7 +259,7 @@ int fold()
     CHECK_TABLE(g_current_user);
     CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
-    return handle_action(g_current_user, ACTION_FOLD, 0);
+    return handle_action(g_current_user->table, g_current_user->index, ACTION_FOLD, 0);
 }
 int check()
 {
@@ -265,7 +267,7 @@ int check()
     CHECK_TABLE(g_current_user);
     CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
-    return handle_action(g_current_user, ACTION_CHCEK, 0);
+    return handle_action(g_current_user->table, g_current_user->index, ACTION_CHCEK, 0);
 }
 int all_in()
 {
@@ -273,7 +275,7 @@ int all_in()
     CHECK_TABLE(g_current_user);
     CHECK_GAME(g_current_user);
     CHECK_IN_TURN(g_current_user);
-    return handle_action(g_current_user, ACTION_ALL_IN, 0);
+    return handle_action(g_current_user->table, g_current_user->index, ACTION_ALL_IN, 0);
 }
 
 int yyerror(char *s)

@@ -1,6 +1,6 @@
 #ifndef _USER_H
 #define _USER_H
-#define MAX_NAME 64
+#define MAX_NAME 32
 #include "uthash.h"
 
 #define MAX_USERS 1024
@@ -15,7 +15,7 @@ typedef unsigned int user_state_t;
 
 typedef struct user_s {
     char name[MAX_NAME];
-    char password[MAX_NAME];
+    char password[20];
     char prompt[MAX_NAME];
     int money;
     struct bufferevent *bev;
@@ -93,5 +93,5 @@ void send_msgv(user_t *user, const char *fmt, va_list ap);
 void send_msg_raw(user_t *user, const char *fmt, ...);
 void send_msgv_raw(user_t *user, const char *fmt, va_list ap);
 int user_save(user_t *user);
-int user_load(user_t *user);
+int user_load(const char *name, user_t *user);
 #endif

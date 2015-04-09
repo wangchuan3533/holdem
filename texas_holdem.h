@@ -35,7 +35,7 @@
 
 int texas_db_init();
 int texas_db_close();
-int texas_db_put(void *key, size_t key_len, void *value, size_t val_len);
-int texas_db_get(void *key, size_t key_len, void *value, size_t *val_len);
+int texas_db_put(const void *key, size_t key_len, const void *value, size_t val_len);
+int texas_db_get(const void *key, size_t key_len, void *value, size_t *val_len);
 
 #endif
