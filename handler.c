@@ -58,7 +58,7 @@ int login(const char *name, const char *password)
     }
     HASH_ADD(hh, g_users, name, strlen(user->name), user);
     user->state |= USER_STATE_LOGIN;
-    send_msg(user, "welcome to texas holdem, %s", user->name);
+    send_msg(user, "welcome to texas holdem, %s, your money left is %d", user->name, user->money);
     return 0;
 }
 
@@ -229,7 +229,7 @@ int start()
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
     table_reset(g_current_user->table);
-    handle_table(g_current_user->table);
+    table_switch(g_current_user->table);
     return 0;
 }
 

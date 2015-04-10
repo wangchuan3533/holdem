@@ -75,11 +75,8 @@ typedef struct table_s {
 
     int bet;
     int pot;
-    struct {
-        int chips;
-        int index;
-    } pots[TABLE_MAX_PLAYERS];
-    int pot_offset;
+    int pots[TABLE_MAX_PLAYERS];
+    int pot_count;
 
     struct event_base *base;
     struct event *ev_timeout;
@@ -114,24 +111,21 @@ void table_pre_flop(table_t *table);
 void table_flop(table_t *table);
 void table_turn(table_t *table);
 void table_river(table_t *table);
-void table_showdown(table_t *table);
+void table_finish(table_t *table);
 
 void table_init_timeout(table_t *table);
 void table_reset_timeout(table_t *table, int left);
 void table_clear_timeout(table_t *table);
 
-int table_check_winner(table_t *table);
-
-
 int handle_action(table_t *table, int index, action_t action, int value);
-int handle_pot(table_t *table);
-int handle_table(table_t *table);
+int table_process(table_t *table);
+int table_switch(table_t *table);
 
 void broadcast(table_t *table, const char *fmt, ...);
 void timeoutcb(evutil_socket_t fd, short events, void *arg);
 #define report(table) do {\
     action_to_string((table)->action_mask, (table)->buffer, sizeof((table)->buffer));\
-    broadcast((table), "turn %s bet %d pot %d mask %s", current_player(table)->user->name, table->bet, table->pot, (table)->buffer);\
+    broadcast((table), "turn %s bet %d pot %d mask %s chips %d", current_player(table)->user->name, table->bet, table->pot, (table)->buffer, current_player(table)->chips);\
 } while (0)
 
 extern table_t *g_tables;

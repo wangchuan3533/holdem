@@ -61,6 +61,7 @@ void table_reset(table_t *table)
     table_clear_timeout(table);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+
         table->players[i]->bet        = 0;
         table->players[i]->talked     = 0;
         table->players[i]->rank.level = 0;
@@ -70,6 +71,10 @@ void table_reset(table_t *table)
         if (table->players[i]->user) {
             table->players[i]->state = PLAYER_STATE_WAITING;
             table->num_players++;
+            if (user->money > 1000) {
+                table->players[i]->chips = 1000 + user->name[0];
+                user->money -= 1000;
+            }
         } else {
             table->players[i]->state = PLAYER_STATE_EMPTY;
         }
@@ -201,14 +206,28 @@ void table_river(table_t *table)
 int cmp_by_rank(const void *a, const void *b)
 {
     player_t **x = (player_t **)a, **y = (player_t **)b;
-    return rank_cmp((*x)->rank, (*y)->rank);
+    return rank_cmp((*y)->rank, (*x)->rank);
 }
 
-void table_showdown(table_t *table)
+void table_finish(table_t *table)
 {
     int i, j, possible_winners_count, chips;
     player_t *possible_winners[TABLE_MAX_PLAYERS];
 
+    // if only one player left
+    if (table->num_active + table->num_all_in == 1) {
+        for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+            if (table->players[i]->state == PLAYER_STATE_ACTIVE || table->players[i]->state == PLAYER_STATE_ALL_IN) {
+                broadcast(table, "[WINNER] %s [POT] %d", table->players[i]->user->name, table->pot);
+                table->players[i]->chips += table->pot;
+                table_reset(table);
+                return;
+            }
+        }
+        err_quit("no winner");
+    }
+    
+    // fill community cards
     switch (table->state) {
     case TABLE_STATE_PREFLOP:
         table->community_cards[0] = get_card(&table->deck);
@@ -223,13 +242,14 @@ void table_showdown(table_t *table)
     default:
         err_quit("default");
     }
-
     broadcast(table, "[SHOWDOWN] community cards is %s, %s, %s, %s, %s",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]),
             card_to_string(table->community_cards[3]),
             card_to_string(table->community_cards[4]));
+
+    // calc ranks & put players to possible winners
     for (i = 0, possible_winners_count = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]->state == PLAYER_STATE_ACTIVE || table->players[i]->state == PLAYER_STATE_ALL_IN) {
             for (j = 0; j < 5; j++) {
@@ -246,18 +266,18 @@ void table_showdown(table_t *table)
     }
 
     // sort by rank TODO equal
-    qsort(possible_winners, sizeof(player_t*), possible_winners_count, cmp_by_rank);
+    qsort(possible_winners, possible_winners_count, sizeof(player_t*), cmp_by_rank);
     for (i = 0; i < possible_winners_count; i++) {
         if (possible_winners[i]->state == PLAYER_STATE_ALL_IN) {
             for (chips = 0, j = possible_winners[i]->pot_index; j >= 0; j--) {
-                chips += table->pots[j].chips;
-                table->pots[j].chips = 0;
+                chips += table->pots[j];
+                table->pots[j] = 0;
             }
             broadcast(table, "player %s wins %d", possible_winners[i]->user->name, chips);
         } else {
-            for (chips = 0, j = table->pot_offset - 1; j >= 0; j--) {
-                chips += table->pots[j].chips;
-                table->pots[j].chips = 0;
+            for (chips = 0, j = table->pot_count - 1; j >= 0; j--) {
+                chips += table->pots[j];
+                table->pots[j] = 0;
             }
             chips += table->pot;
             table->pot = 0;
@@ -267,23 +287,6 @@ void table_showdown(table_t *table)
     }
 
     table_reset(table);
-}
-
-int table_check_winner(table_t *table)
-{
-    int i;
-
-    assert(table->num_active == 1 && table->num_all_in == 0);
-
-    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]->state == PLAYER_STATE_ACTIVE || table->players[i]->state == PLAYER_STATE_ALL_IN) {
-            broadcast(table, "[WINNER] %s [POT] %d", table->players[i]->user->name, table->pot);
-            table->players[i]->chips += table->pot;
-            table_reset(table);
-            return TEXAS_RET_SUCCESS;
-        }
-    }
-    return TEXAS_RET_FAILURE;
 }
 
 inline void table_init_timeout(table_t *table)
@@ -334,11 +337,7 @@ int player_join(table_t *table, user_t *user)
         return TEXAS_RET_MAX_PLAYER;
     }
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]->user == NULL) {
-            if (user->money > 1000) {
-                table->players[i]->chips = 1000;
-                user->money -= 1000;
-            }
+        if (table->players[i]->user == NULL && table->players[i]->state == PLAYER_STATE_EMPTY) {
             table->players[i]->user = user;
             user->table = table;
             table->num_players++;
@@ -354,18 +353,19 @@ int player_join(table_t *table, user_t *user)
 
 int player_quit(user_t *user)
 {
-    assert(user->table->players[user->index]->user == user);
+    table_t *table = user->table;
 
-    if (user->table->players[user->index]->chips > 0) {
-        user->money += user->table->players[user->index]->chips;
-        user->table->players[user->index]->chips = 0;
+    assert(table->players[user->index]->user == user);
+    if (table->players[user->index]->chips > 0) {
+        user->money += table->players[user->index]->chips;
+        table->players[user->index]->chips = 0;
     }
-    user->table->players[user->index]->user = NULL;
+    table->players[user->index]->user = NULL;
+    table->num_players--;
     user->table = NULL;
-    user->table->num_players--;
     user->index = -1;
     user->state &= ~USER_STATE_TABLE;
-    broadcast(user->table, "%s quit", user->name);
+    broadcast(table, "%s quit", user->name);
     return TEXAS_RET_SUCCESS;
 }
 
@@ -555,21 +555,16 @@ int handle_action(table_t *table, int index, action_t action, int value)
     next = next_player(table, table->turn);
 
     if (next < 0) {
-        if (table->num_all_in + table->num_active == 1) {
-            handle_pot(table);
-            assert(table_check_winner(table) == 0);
-            return TEXAS_RET_SUCCESS;
-        }
-        assert(table->num_all_in + table->num_active > 1);
-        table_showdown(table);
+        table_process(table);
+        table_finish(table);
         return TEXAS_RET_SUCCESS;
     }
 
     player_next = table->players[next];
     assert(player_next);
     if (player_next->bet == table->bet && player_next->talked == 1) {
-        handle_pot(table);
-        handle_table(table);
+        table_process(table);
+        table_switch(table);
         return TEXAS_RET_SUCCESS;
     }
 
@@ -608,29 +603,43 @@ int cmp_by_bet(const void *a, const void *b)
     return (((*x)->bet) - ((*y)->bet));
 }
 
-int handle_pot(table_t *table)
+int table_process(table_t *table)
 {
     player_t *all_in_players[TABLE_MAX_PLAYERS];
-    int i, j, all_in_players_count, bet, side_pot;
+    int i, j, all_in_players_count = 0, bet, side_pot;
+
+    // remove left player
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+        if (table->players[i]->user == NULL) {
+            switch (table->players[i]->state) {
+            case PLAYER_STATE_FOLDED:
+                table->num_folded--;
+            case PLAYER_STATE_WAITING:
+                table->num_players--;
+                table->players[i]->state = PLAYER_STATE_EMPTY;
+                break;
+            default:
+                break;
+            }
+        }
+    }
 
     // find all in players this round
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]->state != PLAYER_STATE_EMPTY) {
-            if (table->players[i]->state == PLAYER_STATE_ALL_IN && table->players[i]->bet > 0) {
-                all_in_players[all_in_players_count++] = table->players[i];
-            }
+        if (table->players[i]->state == PLAYER_STATE_ALL_IN && table->players[i]->bet > 0) {
+            all_in_players[all_in_players_count++] = table->players[i];
         }
     }
 
     if (all_in_players_count > 0) {
         // sort
-        qsort(all_in_players, sizeof(player_t *), all_in_players_count, cmp_by_bet);
+        qsort(all_in_players, all_in_players_count, sizeof(player_t *), cmp_by_bet);
 
         // calc side pots
         for (i = 0; i < all_in_players_count; i++) {
             bet = all_in_players[i]->bet;
-            for (j = 0; j < TABLE_MAX_PLAYERS; j++) {
-                if (table->players[j]->state != PLAYER_STATE_WAITING && table->players[j]->bet > 0) {
+            for (j = 0, side_pot = 0; j < TABLE_MAX_PLAYERS; j++) {
+                if (table->players[j]->bet > 0) {
                     if (table->players[j]->bet < bet) {
                         side_pot += table->players[j]->bet;
                         table->players[j]->bet = 0;
@@ -642,9 +651,8 @@ int handle_pot(table_t *table)
             }
             side_pot += table->pot;
             table->pot = 0;
-            table->pots[table->pot_offset].chips = side_pot;
-            table->pots[table->pot_offset].index = all_in_players[i] - table->players[0];
-            all_in_players[i]->pot_index = table->pot_offset++;
+            table->pots[table->pot_count] = side_pot;
+            all_in_players[i]->pot_index = table->pot_count++;
         }
     }
 
@@ -658,7 +666,7 @@ int handle_pot(table_t *table)
     return TEXAS_RET_SUCCESS;
 }
 
-int handle_table(table_t *table)
+int table_switch(table_t *table)
 {
     switch (table->state) {
     case TABLE_STATE_WAITING:
@@ -674,7 +682,7 @@ int handle_table(table_t *table)
         table_river(table);
         break;
     case TABLE_STATE_RIVER:
-        table_showdown(table);
+        table_finish(table);
         break;
     default:
         break;
