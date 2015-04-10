@@ -71,9 +71,9 @@ void table_reset(table_t *table)
         if (table->players[i]->user) {
             table->players[i]->state = PLAYER_STATE_WAITING;
             table->num_players++;
-            if (user->money > 1000) {
-                table->players[i]->chips = 1000 + user->name[0];
-                user->money -= 1000;
+            if (table->players[i]->user->money > 1000 && table->players[i]->chips < table->minimum_bet) {
+                table->players[i]->chips = 1000 + table->players[i]->user->name[0];
+                table->players[i]->user->money -= 1000;
             }
         } else {
             table->players[i]->state = PLAYER_STATE_EMPTY;
@@ -123,7 +123,8 @@ void table_pre_flop(table_t *table)
     table->big_blind = next_player(table, table->small_blind);
     table->players[table->big_blind]->chips -= table->minimum_bet;
     table->players[table->big_blind]->bet += table->minimum_bet;
-    broadcast(table, "%s blind %d", table->players[table->big_blind]->user->name, table->players[table->big_blind]->bet);
+    broadcast(table, "%s blind %d", table->players[table->big_blind]->user->name,
+            table->players[table->big_blind]->bet);
 
     // prepare table
     table->bet  = table->minimum_bet;
@@ -218,8 +219,14 @@ void table_finish(table_t *table)
     if (table->num_active + table->num_all_in == 1) {
         for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
             if (table->players[i]->state == PLAYER_STATE_ACTIVE || table->players[i]->state == PLAYER_STATE_ALL_IN) {
-                broadcast(table, "[WINNER] %s [POT] %d", table->players[i]->user->name, table->pot);
-                table->players[i]->chips += table->pot;
+                for (chips = 0, j = 0; j < table->pot_count; j++) {
+                    chips += table->pots[j];
+                    table->pots[j] = 0;
+                }
+                chips += table->pot;
+                table->pot = 0;
+                broadcast(table, "player %s wins %d", table->players[i]->user->name, chips);
+                table->players[i]->chips += chips;
                 table_reset(table);
                 return;
             }
@@ -269,13 +276,13 @@ void table_finish(table_t *table)
     qsort(possible_winners, possible_winners_count, sizeof(player_t*), cmp_by_rank);
     for (i = 0; i < possible_winners_count; i++) {
         if (possible_winners[i]->state == PLAYER_STATE_ALL_IN) {
-            for (chips = 0, j = possible_winners[i]->pot_index; j >= 0; j--) {
+            for (chips = 0, j = 0; j <= possible_winners[i]->pot_index; j++) {
                 chips += table->pots[j];
                 table->pots[j] = 0;
             }
             broadcast(table, "player %s wins %d", possible_winners[i]->user->name, chips);
         } else {
-            for (chips = 0, j = table->pot_count - 1; j >= 0; j--) {
+            for (chips = 0, j = 0; j < table->pot_count; j++) {
                 chips += table->pots[j];
                 table->pots[j] = 0;
             }
@@ -469,7 +476,6 @@ int player_fold(table_t *table, int index)
 {
     player_t *player = table->players[index];
 
-    player->bet = 0;
     table->num_active--;
     table->num_folded++;
     player->talked = 1;
@@ -554,7 +560,7 @@ int handle_action(table_t *table, int index, action_t action, int value)
     // generate available actions
     next = next_player(table, table->turn);
 
-    if (next < 0) {
+    if ((table->num_active == 1 && table->num_all_in == 0) || next < 0) {
         table_process(table);
         table_finish(table);
         return TEXAS_RET_SUCCESS;
@@ -658,7 +664,7 @@ int table_process(table_t *table)
 
     // collect bets to table's main pot
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]->state != PLAYER_STATE_WAITING && table->players[i]->bet > 0) {
+        if (table->players[i]->bet > 0) {
             table->pot += table->players[i]->bet;
             table->players[i]->bet = 0;
         }
