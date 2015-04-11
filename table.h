@@ -62,6 +62,7 @@ typedef struct table_s {
     int num_all_in;
     int num_folded;
     int num_active;
+    int num_available;
 
     int dealer;
     int small_blind;
@@ -105,12 +106,13 @@ int player_all_in(table_t *table, int index);
 
 table_t *table_create();
 void tatle_destroy(table_t *table);
-void table_reset(table_t *table);
 
+void table_prepare(table_t *table);
 void table_pre_flop(table_t *table);
 void table_flop(table_t *table);
 void table_turn(table_t *table);
 void table_river(table_t *table);
+void table_start(table_t *table);
 void table_finish(table_t *table);
 
 void table_init_timeout(table_t *table);

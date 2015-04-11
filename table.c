@@ -42,14 +42,12 @@ void table_destroy(table_t *table)
     }
 }
 
-void table_reset(table_t *table)
+void table_prepare(table_t *table)
 {
     int i;
 
     table->pot           = 0;
     table->bet           = 0;
-    table->small_blind   = 50;
-    table->big_blind     = 100;
     table->minimum_bet   = 100;
     table->minimum_raise = 100;
     table->raise_count   = 0;
@@ -69,11 +67,14 @@ void table_reset(table_t *table)
         table->players[i]->pot_index  = -1;
 
         if (table->players[i]->user) {
-            table->players[i]->state = PLAYER_STATE_WAITING;
-            table->num_players++;
-            if (table->players[i]->user->money > 1000 && table->players[i]->chips < table->minimum_bet) {
+            if (table->players[i]->chips < table->minimum_bet && table->players[i]->user->money > 1000 ) {
                 table->players[i]->chips = 1000 + table->players[i]->user->name[0];
                 table->players[i]->user->money -= 1000;
+            }
+            table->players[i]->state = PLAYER_STATE_WAITING;
+            table->num_players++;
+            if (table->players[i]->chips >= table->minimum_bet) {
+                table->num_available++;
             }
         } else {
             table->players[i]->state = PLAYER_STATE_EMPTY;
@@ -85,18 +86,14 @@ void table_reset(table_t *table)
 
 void table_pre_flop(table_t *table)
 {
-    int i, playing;
+    int i;
 
-    for (i = 0, playing = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]->state == PLAYER_STATE_WAITING
-                && table->players[i]->chips >= table->minimum_bet) {
-            playing++;
-        }
-    }
-    if (playing < MIN_PLAYERS) {
+    if (table->num_available < MIN_PLAYERS) {
+        broadcast(table, "not enough players");
         return;
     }
-    for (i = 0, playing = 0; i < TABLE_MAX_PLAYERS; i++) {
+
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]->state == PLAYER_STATE_WAITING
                 && table->players[i]->chips >= table->minimum_bet) {
                 table->players[i]->state = PLAYER_STATE_ACTIVE;
@@ -210,6 +207,12 @@ int cmp_by_rank(const void *a, const void *b)
     return rank_cmp((*y)->rank, (*x)->rank);
 }
 
+void table_start(table_t *table)
+{
+    table_prepare(table);
+    table_switch(table);
+}
+
 void table_finish(table_t *table)
 {
     int i, j, possible_winners_count, chips;
@@ -227,7 +230,6 @@ void table_finish(table_t *table)
                 table->pot = 0;
                 broadcast(table, "player %s wins %d", table->players[i]->user->name, chips);
                 table->players[i]->chips += chips;
-                table_reset(table);
                 return;
             }
         }
@@ -292,8 +294,6 @@ void table_finish(table_t *table)
         }
         possible_winners[i]->chips += chips;
     }
-
-    table_reset(table);
 }
 
 inline void table_init_timeout(table_t *table)
@@ -498,15 +498,11 @@ int handle_action(table_t *table, int index, action_t action, int value)
     player_t *player_next;
     int next;
 
+    assert(player->user);
     // check action
     if (!(action & table->action_mask)) {
         send_msg(player->user, "invalid action");
         return TEXAS_RET_ACTION;
-    }
-
-    if (player->state == PLAYER_STATE_ALL_IN) {
-        send_msg(player->user, "you already all in");
-        return TEXAS_RET_ALL_IN;
     }
 
     switch (action) {
