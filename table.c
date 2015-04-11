@@ -34,8 +34,8 @@ table_t *table_create()
 void table_destroy(table_t *table)
 {
     if (table) {
-        if (table->players) {
-            free(table->players);
+        if (table->players[0]) {
+            free(table->players[0]);
         }
         free(table);
         g_num_tables--;
