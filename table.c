@@ -216,7 +216,7 @@ void table_start(table_t *table)
 
 void table_finish(table_t *table)
 {
-    int i, j, k, l, m, possible_winners_count, chips;
+    int i, j, k, l, possible_winners_count, chips;
     int pot_share_count[TABLE_MAX_PLAYERS];
     player_t *possible_winners[TABLE_MAX_PLAYERS];
 
