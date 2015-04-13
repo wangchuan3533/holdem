@@ -35,7 +35,7 @@ typedef struct player_s {
     int bet;
     int chips;
     int talked;
-    int pot_index;
+    int pot_offset;
     player_state_t state;
     card_t hand_cards[7];
     hand_rank_t rank;
@@ -72,11 +72,10 @@ typedef struct table_s {
     unsigned int action_mask;
     int minimum_bet;
     int minimum_raise;
-    int raise_count;
 
     int bet;
     int pot;
-    int pots[TABLE_MAX_PLAYERS];
+    int side_pots[TABLE_MAX_PLAYERS];
     int pot_count;
 
     struct event_base *base;

@@ -50,13 +50,14 @@ void table_prepare(table_t *table)
     table->bet           = 0;
     table->minimum_bet   = 100;
     table->minimum_raise = 100;
-    table->raise_count   = 0;
     table->num_players   = 0;
     table->num_active    = 0;
     table->num_all_in    = 0;
     table->num_folded    = 0;
+    table->pot_count     = 0;
     init_deck(&(table->deck));
     table_clear_timeout(table);
+    memset(table->side_pots, 0, sizeof(table->side_pots));
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
 
@@ -64,7 +65,7 @@ void table_prepare(table_t *table)
         table->players[i]->talked     = 0;
         table->players[i]->rank.level = 0;
         table->players[i]->rank.score = 0;
-        table->players[i]->pot_index  = -1;
+        table->players[i]->pot_offset = 0;
 
         if (table->players[i]->user) {
             if (table->players[i]->chips < table->minimum_bet && table->players[i]->user->money > 1000 ) {
@@ -215,19 +216,22 @@ void table_start(table_t *table)
 
 void table_finish(table_t *table)
 {
-    int i, j, possible_winners_count, chips;
+    int i, j, k, l, m, possible_winners_count, chips;
+    int pot_share_count[TABLE_MAX_PLAYERS];
     player_t *possible_winners[TABLE_MAX_PLAYERS];
+
+    // collect main pot to side pots
+    table->side_pots[table->pot_count++] = table->pot;
+    table->pot = 0;
 
     // if only one player left
     if (table->num_active + table->num_all_in == 1) {
         for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
             if (table->players[i]->state == PLAYER_STATE_ACTIVE || table->players[i]->state == PLAYER_STATE_ALL_IN) {
                 for (chips = 0, j = 0; j < table->pot_count; j++) {
-                    chips += table->pots[j];
-                    table->pots[j] = 0;
+                    chips += table->side_pots[j];
+                    table->side_pots[j] = 0;
                 }
-                chips += table->pot;
-                table->pot = 0;
                 broadcast(table, "player %s wins %d", table->players[i]->user->name, chips);
                 table->players[i]->chips += chips;
                 return;
@@ -261,6 +265,9 @@ void table_finish(table_t *table)
     // calc ranks & put players to possible winners
     for (i = 0, possible_winners_count = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]->state == PLAYER_STATE_ACTIVE || table->players[i]->state == PLAYER_STATE_ALL_IN) {
+            if (table->players[i]->state == PLAYER_STATE_ACTIVE) {
+                table->players[i]->pot_offset = table->pot_count;
+            }
             for (j = 0; j < 5; j++) {
                 table->players[i]->hand_cards[j + 2] = table->community_cards[j];
             }
@@ -276,23 +283,28 @@ void table_finish(table_t *table)
 
     // sort by rank TODO equal
     qsort(possible_winners, possible_winners_count, sizeof(player_t*), cmp_by_rank);
-    for (i = 0; i < possible_winners_count; i++) {
-        if (possible_winners[i]->state == PLAYER_STATE_ALL_IN) {
-            for (chips = 0, j = 0; j <= possible_winners[i]->pot_index; j++) {
-                chips += table->pots[j];
-                table->pots[j] = 0;
+
+    // distribute the pots to winners
+    for (i = 0; i < possible_winners_count; i = j) {
+        // we may have more than one winners with the same rank&score
+        for (j = i + 1; j < possible_winners_count
+                && possible_winners[j]->rank.level == possible_winners[i]->rank.level
+                && possible_winners[j]->rank.score == possible_winners[i]->rank.score; j++);
+        memset(pot_share_count, 0, sizeof pot_share_count);
+        for (k = i; k < j; k++) {
+            for (l = 0; l < possible_winners[k]->pot_offset; l++) {
+                pot_share_count[l]++;
             }
-            broadcast(table, "player %s wins %d", possible_winners[i]->user->name, chips);
-        } else {
-            for (chips = 0, j = 0; j < table->pot_count; j++) {
-                chips += table->pots[j];
-                table->pots[j] = 0;
-            }
-            chips += table->pot;
-            table->pot = 0;
-            broadcast(table, "player %s wins %d", possible_winners[i]->user->name, chips);
         }
-        possible_winners[i]->chips += chips;
+
+        for (k = i; k < j; k++) {
+            for (chips = 0, l = 0; l < possible_winners[k]->pot_offset; l++) {
+                chips               += table->side_pots[l] / pot_share_count[l];
+                table->side_pots[l] -= table->side_pots[l] / pot_share_count[l];
+            }
+            possible_winners[k]->chips += chips;
+            broadcast(table, "player %s wins %d", possible_winners[k]->user->name, chips);
+        }
     }
 }
 
@@ -428,7 +440,6 @@ int player_raise(table_t *table, int index, int raise)
     player->chips -= (raise + diff);
     player->bet += (raise + diff);
     table->bet = player->bet;
-    table->raise_count++;
     table->minimum_raise = raise;
     player->talked = 1;
 
@@ -460,7 +471,6 @@ int player_all_in(table_t *table, int index)
         diff = player->bet - table->bet;
         table->bet = player->bet;
         if (diff > table->minimum_raise) {
-            table->raise_count++;
             table->minimum_raise = diff;
         }
     }
@@ -653,8 +663,8 @@ int table_process(table_t *table)
             }
             side_pot += table->pot;
             table->pot = 0;
-            table->pots[table->pot_count] = side_pot;
-            all_in_players[i]->pot_index = table->pot_count++;
+            table->side_pots[table->pot_count] = side_pot;
+            all_in_players[i]->pot_offset = ++(table->pot_count);
         }
     }
 
