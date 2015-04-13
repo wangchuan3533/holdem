@@ -113,7 +113,6 @@ int create_table(const char *name)
         return -1;
     }
 
-    table_reset(table);
     //send_msg(user, "table %s created", table->name);
     return 0;
 }
@@ -228,8 +227,7 @@ int start()
 {
     CHECK_LOGIN(g_current_user);
     CHECK_TABLE(g_current_user);
-    table_reset(g_current_user->table);
-    table_switch(g_current_user->table);
+    table_start(g_current_user->table);
     return 0;
 }
 

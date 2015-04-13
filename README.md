@@ -84,9 +84,7 @@ make test
 ```
 
 ## TODO
-- last action
-- all in
-- side-pot
-- chat
-- fix timeout
 - burn card
+- table start bug fix
+- send_msg() bug
+- 

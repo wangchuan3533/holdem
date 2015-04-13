@@ -35,7 +35,7 @@ typedef struct player_s {
     int bet;
     int chips;
     int talked;
-    int pot_index;
+    int pot_offset;
     player_state_t state;
     card_t hand_cards[7];
     hand_rank_t rank;
@@ -62,6 +62,7 @@ typedef struct table_s {
     int num_all_in;
     int num_folded;
     int num_active;
+    int num_available;
 
     int dealer;
     int small_blind;
@@ -71,11 +72,10 @@ typedef struct table_s {
     unsigned int action_mask;
     int minimum_bet;
     int minimum_raise;
-    int raise_count;
 
     int bet;
     int pot;
-    int pots[TABLE_MAX_PLAYERS];
+    int side_pots[TABLE_MAX_PLAYERS];
     int pot_count;
 
     struct event_base *base;
@@ -105,12 +105,13 @@ int player_all_in(table_t *table, int index);
 
 table_t *table_create();
 void tatle_destroy(table_t *table);
-void table_reset(table_t *table);
 
+void table_prepare(table_t *table);
 void table_pre_flop(table_t *table);
 void table_flop(table_t *table);
 void table_turn(table_t *table);
 void table_river(table_t *table);
+void table_start(table_t *table);
 void table_finish(table_t *table);
 
 void table_init_timeout(table_t *table);
