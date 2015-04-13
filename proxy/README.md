@@ -1,19 +1,17 @@
 
-# Socket.IO Chat
+# Texas Hold'em Poker websocket proxy
 
-A simple chat demo for socket.io
+Texas Hold'em Poker websocket proxy
 
 ## How to use
 
 ```
-$ cd socket.io
+$ cd proxy
 $ npm install
-$ cd examples/chat
-$ npm install
-$ node .
+$ node index
 ```
 
-And point your browser to `http://localhost:3000`. Optionally, specify
+And point your browser to `http://localhost:8899`. Optionally, specify
 a port by supplying the `PORT` env variable.
 
 ## Features

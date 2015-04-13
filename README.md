@@ -81,12 +81,10 @@ node index.js
 ```
 用浏览器打开 http://localhost:8899/
 
-## unit test
-```bash
-make clean
-make test
-./test
-```
+## Online Demo
+telnet 121.42.166.108 10000
+or
+http://121.42.166.108:8899/
 
 ## TODO
 - burn card
