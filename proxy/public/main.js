@@ -10,6 +10,9 @@ $(function() {
   // Initialize varibles
   var $window = $(window);
   var $usernameInput = $('.usernameInput'); // Input for username
+  var $userpassInput = $('.userpassInput'); // Input for password
+  var $loginButton = $('.loginButton'); // login button
+  var $registerButton = $('.registerButton'); // register button
   var $messages = $('.messages'); // Messages area
   var $inputMessage = $('.inputMessage'); // Input message input box
 
@@ -21,7 +24,6 @@ $(function() {
   var connected = false;
   var typing = false;
   var lastTypingTime;
-  var $currentInput = $usernameInput.focus();
 
   var socket = io();
 
@@ -35,19 +37,19 @@ $(function() {
     log(message);
   }
 
-  // Sets the client's username
-  function setUsername () {
+  // user login or register
+  function userLogin (method) {
     username = cleanInput($usernameInput.val().trim());
+    password = cleanInput($userpassInput.val().trim());
 
     // If the username is valid
-    if (username) {
+    if (method && username && password) {
       $loginPage.fadeOut();
       $chatPage.show();
       $loginPage.off('click');
-      $currentInput = $inputMessage.focus();
 
       // Tell the server your username
-      socket.emit('join', username);
+      socket.emit('join', {'method': method, 'username': username, 'password': password});
     }
   }
 
@@ -190,32 +192,30 @@ $(function() {
 
   // Keyboard events
 
+  // login
+  $loginButton.click(function() {
+    userLogin('login');
+  });
+
+  // register
+  $registerButton.click(function() {
+    userLogin('reg');
+  });
+
   $window.keydown(function (event) {
-    // Auto-focus the current input when a key is typed
-    if (!(event.ctrlKey || event.metaKey || event.altKey)) {
-      $currentInput.focus();
-    }
+
     // When the client hits ENTER on their keyboard
     if (event.which === 13) {
       if (username) {
         sendMessage();
         socket.emit('typing_off');
         typing = false;
-      } else {
-        setUsername();
       }
     }
   });
 
   $inputMessage.on('input', function() {
     updateTyping();
-  });
-
-  // Click events
-
-  // Focus input when clicking anywhere on login page
-  $loginPage.click(function () {
-    $currentInput.focus();
   });
 
   // Focus input when clicking on the message input's border

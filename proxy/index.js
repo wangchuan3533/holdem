@@ -28,7 +28,11 @@ io.on('connection', function (socket) {
   });
 
   // when the client emits 'join', this listens and executes
-  socket.on('join', function (username) {
+  socket.on('join', function (user) {
+    username = user.username;
+    password = user.password;
+    method   = user.method;
+
     // we store the username in the socket session for this client
     socket.username = username;
     // add the client's username to the global list
@@ -46,7 +50,7 @@ io.on('connection', function (socket) {
 
     peer = net.connect({port:10000}, function() {
       console.log(username + ' connected to peer server!');
-      peer.write('login ' + username + "\n");
+      peer.write(method + ' '  + username + ' ' + password + "\n");
     });
     
     peer.on('data', function(resp) {

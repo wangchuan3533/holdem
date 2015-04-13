@@ -62,7 +62,7 @@ ul {
   width: 100%;
 }
 
-.login.page .form .usernameInput {
+.login.page .form .usernameInput .userpassInput .loginButton .registerButton {
   background-color: transparent;
   border: none;
   border-bottom: 2px solid #fff;
@@ -76,12 +76,12 @@ ul {
   font-size: 200%;
 }
 
-.login.page .usernameInput {
+.login.page .usernameInput .userpassInput .loginButton .registerButton {
   font-size: 200%;
   letter-spacing: 3px;
 }
 
-.login.page .title, .login.page .usernameInput {
+.login.page .label, .login.page .usernameInput .userpassInput .loginButton .registerButton {
   color: #fff;
   font-weight: 100;
 }
