@@ -11,15 +11,25 @@
       <div class="chatArea">
         <ul class="messages"></ul>
       </div>
+      <div>
+          <input type="button" value="bet" />
+          <input type="button" value="check" />
+          <input type="button" value="raise" />
+          <input type="button" value="call" />
+          <input type="button" value="fold" />
+          <input type="button" value="check" />
+          <input type="range" value="range" min="0" max="1000" />
+      </div>
       <input class="inputMessage" placeholder="Type here..."/>
     </li>
     <li class="login page">
       <div class="form">
-        <h3>Texas Hold'em Poker Game </h3>
-        <span class="label">User Name</span><input class="usernameInput" type="text" maxlength="14" /><br />
-        <span class="label">Password</span><input class="userpassInput" type="password" maxlength="14" /><br />
-        <input class="loginButton" type="button" value="Login" maxlength="14" />
-        <input class="registerButton" type="button" value="Register" maxlength="14" />
+        <div class="item"><div class="label">User Name</div><input class="usernameInput" type="text" /></div>
+        <div class="item"><div class="label">Password</div><input class="userpassInput" type="password" /></div>
+        <div class="item">
+          <input class="loginButton" type="button" value="Login" />
+          <input class="registerButton" type="button" value="Register" />
+        </div>
       </div>
     </li>
   </ul>

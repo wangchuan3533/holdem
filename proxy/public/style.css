@@ -31,6 +31,10 @@ ul {
   word-wrap: break-word;
 }
 
+h3 {
+  color: #ffffff;
+}
+
 /* Pages */
 
 .pages {
@@ -53,16 +57,23 @@ ul {
 }
 
 .login.page .form {
-  height: 100px;
-  margin-top: -100px;
+  width: 400px;
+  height: 300px;
   position: absolute;
-
   text-align: center;
-  top: 50%;
-  width: 100%;
+  top: 40%;
+  left: 40%;
 }
 
-.login.page .form .usernameInput .userpassInput .loginButton .registerButton {
+.item {
+  display: block;
+  padding-top: 15px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 70%;
+}
+
+.login.page .form .usernameInput .userpassInput {
   background-color: transparent;
   border: none;
   border-bottom: 2px solid #fff;
@@ -81,8 +92,27 @@ ul {
   letter-spacing: 3px;
 }
 
+.loginButton {
+  left: 10px;
+}
+.label {
+  float: left;
+  display: block;
+  width: 100px;
+  text-align: left;
+}
+
+.usernameInput .userpassInput  {
+  float: right;
+}
+
+.buttons {
+  width: 100%;
+  margin-top: 20px;
+}
+
 .login.page .label, .login.page .usernameInput .userpassInput .loginButton .registerButton {
-  color: #fff;
+  color: #ffffff;
   font-weight: 100;
 }
 
