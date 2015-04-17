@@ -7,7 +7,6 @@
 #include "hand.h"
 #include "user.h"
 
-#define TABLE_TMP_BUFFER_SIZE 1024
 #define TABLE_MAX_PLAYERS 10
 #define MIN_PLAYERS 3
 #define MAX_TABLES 1024
@@ -81,7 +80,6 @@ typedef struct table_s {
     struct event_base *base;
     struct event *ev_timeout;
     UT_hash_handle hh;
-    char buffer[TABLE_TMP_BUFFER_SIZE];
 } table_t;
 
 #define current_player(t) ((t)->players[(t)->turn])
@@ -124,10 +122,9 @@ int table_switch(table_t *table);
 
 void broadcast(table_t *table, const char *fmt, ...);
 void timeoutcb(evutil_socket_t fd, short events, void *arg);
-#define report(table) do {\
-    action_to_string((table)->action_mask, (table)->buffer, sizeof((table)->buffer));\
-    broadcast((table), "turn %s bet %d pot %d mask %s chips %d", current_player(table)->user->name, table->bet, table->pot, (table)->buffer, current_player(table)->chips);\
-} while (0)
+
+void report_table(table_t *table);
+void report_player(table_t *table, int index);
 
 extern table_t *g_tables;
 extern int g_num_tables;

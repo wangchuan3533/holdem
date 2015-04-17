@@ -113,7 +113,6 @@ int create_table(const char *name)
         return -1;
     }
 
-    //send_msg(user, "table %s created", table->name);
     return 0;
 }
 
@@ -136,7 +135,6 @@ int join_table(const char *name)
         return -1;
     }
 
-    //send_msg(user, "join table %s success", table->name);
     return 0;
 }
 
@@ -330,5 +328,18 @@ int prompt(const char *str)
 
     snprintf(user->prompt, sizeof(user->prompt), "\n%s", str);
     send_msg(user, "set prompt success");
+    return 0;
+}
+
+int set_user_type(int type)
+{
+    user_t *user = g_current_user;
+
+    if (type) {
+        user->type = USER_TYPE_WEBSOCKET;
+    } else {
+        user->type = USER_TYPE_TELNET;
+    }
+    send_msg(user, "set type success");
     return 0;
 }

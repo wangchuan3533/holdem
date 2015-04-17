@@ -10,6 +10,9 @@ struct table_s;
 #define USER_STATE_LOGIN     0x01
 #define USER_STATE_TABLE     0x02
 
+#define USER_TYPE_TELNET     0x00
+#define USER_TYPE_WEBSOCKET  0x01
+
 typedef unsigned int user_state_t;
 
 typedef struct user_s {
@@ -22,6 +25,7 @@ typedef struct user_s {
     user_state_t state;
     UT_hash_handle hh;
     int index;
+    int type;
 } user_t;
 
 #ifdef TEXAS_ASSERT
@@ -73,6 +77,8 @@ void send_msg(user_t *user, const char *fmt, ...);
 void send_msgv(user_t *user, const char *fmt, va_list ap);
 void send_msg_raw(user_t *user, const char *fmt, ...);
 void send_msgv_raw(user_t *user, const char *fmt, va_list ap);
+void send_msg_new(user_t *user, const char *fmt1, const char *fmt2, ...);
+void send_msgv_new(user_t *user, const char *fmt, const char *fmt2, va_list ap);
 int user_save(user_t *user);
 int user_load(const char *name, user_t *user);
 #endif

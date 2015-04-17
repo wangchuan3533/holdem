@@ -9,7 +9,7 @@
 %token NUMBER 
 %token ADD SUB MUL DIV OP CP
 %token REG LOGIN LOGOUT SHOW TABLES PLAYERS IN MK JOIN PWD QUIT EXIT HELP
-%token BET RAISE CALL CHECK FOLD ALL_IN CHAT PROMPT START
+%token BET RAISE CALL CHECK FOLD ALL_IN CHAT PROMPT TYPE START
 %token IDENTIFIER STRING
 %token EOL
 %union
@@ -45,8 +45,9 @@ calclist: /* empty */
   | calclist HELP EOL                              { print_help();                         }
   | calclist CHAT STRING EOL                       { chat($3); free($3);                   }
   | calclist PROMPT STRING EOL                     { prompt($3); free($3);                 }
+  | calclist TYPE NUMBER EOL                       { set_user_type($3);                    }
   | calclist exp EOL                               { reply("%d", $2);                      }
-  | calclist EOL                                   { reply("\n");                          }
+  | calclist EOL                                   { reply("");                            }
   ;
 
 exp: factor

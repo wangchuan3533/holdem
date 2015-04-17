@@ -90,7 +90,7 @@ void table_pre_flop(table_t *table)
     int i;
 
     if (table->num_available < MIN_PLAYERS) {
-        broadcast(table, "not enough players");
+        broadcast(table, "not enough players to start game: %d", table->num_available);
         return;
     }
 
@@ -131,7 +131,7 @@ void table_pre_flop(table_t *table)
     table_reset_timeout(table, 0);
     table->state = TABLE_STATE_PREFLOP;
 
-    report(table);
+    report_table(table);
 }
 
 void table_flop(table_t *table)
@@ -157,7 +157,7 @@ void table_flop(table_t *table)
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table, 0);
-    report(table);
+    report_table(table);
 }
 
 void table_turn(table_t *table)
@@ -178,7 +178,7 @@ void table_turn(table_t *table)
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table, 0);
-    report(table);
+    report_table(table);
 }
 
 void table_river(table_t *table)
@@ -199,7 +199,7 @@ void table_river(table_t *table)
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table, 0);
-    report(table);
+    report_table(table);
 }
 
 int cmp_by_rank(const void *a, const void *b)
@@ -219,6 +219,7 @@ void table_finish(table_t *table)
     int i, j, k, l, possible_winners_count, chips;
     int pot_share_count[TABLE_MAX_PLAYERS];
     player_t *possible_winners[TABLE_MAX_PLAYERS];
+    char buffer[1024];
 
     // collect main pot to side pots
     table->side_pots[table->pot_count++] = table->pot;
@@ -272,11 +273,11 @@ void table_finish(table_t *table)
                 table->players[i]->hand_cards[j + 2] = table->community_cards[j];
             }
             table->players[i]->rank = calc_rank(table->players[i]->hand_cards);
-            hand_to_string(table->players[i]->hand_cards, table->players[i]->rank, table->buffer, sizeof(table->buffer));
+            hand_to_string(table->players[i]->hand_cards, table->players[i]->rank, buffer, sizeof(buffer));
             broadcast(table, "player %s's cards is %s, %s. rank is [%s], hand is %s, score is %d",
                     table->players[i]->user->name, card_to_string(table->players[i]->hand_cards[0]),
                     card_to_string(table->players[i]->hand_cards[1]), level_to_string(table->players[i]->rank.level),
-                    table->buffer, table->players[i]->rank.score);
+                    buffer, table->players[i]->rank.score);
             possible_winners[possible_winners_count++] = table->players[i];
         }
     }
@@ -325,13 +326,30 @@ inline void table_clear_timeout(table_t *table)
 
 int action_to_string(action_t mask, char *buffer, int size)
 {
-    return snprintf(buffer, size, "[%s|%s|%s|%s|%s|%s]",
-            mask & ACTION_BET    ? "bet"    : "",
-            mask & ACTION_RAISE  ? "raise"  : "",
-            mask & ACTION_CALL   ? "call"   : "",
-            mask & ACTION_CHCEK  ? "check"  : "",
-            mask & ACTION_FOLD   ? "fold"   : "",
-            mask & ACTION_ALL_IN ? "all_in" : "");
+    int offset = 0;
+    buffer[offset++] = '[';
+    if (mask & ACTION_BET)    offset += snprintf(buffer, size + offset, "bet|");
+    if (mask & ACTION_RAISE)  offset += snprintf(buffer, size + offset, "raise|");
+    if (mask & ACTION_CALL)   offset += snprintf(buffer, size + offset, "call|");
+    if (mask & ACTION_CHCEK)  offset += snprintf(buffer, size + offset, "check|");
+    if (mask & ACTION_FOLD)   offset += snprintf(buffer, size + offset, "fold|");
+    if (mask & ACTION_ALL_IN) offset += snprintf(buffer, size + offset, "all_in|");
+    if (offset) buffer[offset] = ']';
+    return offset;
+}
+
+int action_to_json(action_t mask, char *buffer, int size)
+{
+    int offset = 0;
+    buffer[offset++] = '[';
+    if (mask & ACTION_BET)    offset += snprintf(buffer, size + offset, "\"bet\",");
+    if (mask & ACTION_RAISE)  offset += snprintf(buffer, size + offset, "\"raise\",");
+    if (mask & ACTION_CALL)   offset += snprintf(buffer, size + offset, "\"call\",");
+    if (mask & ACTION_CHCEK)  offset += snprintf(buffer, size + offset, "\"check\",");
+    if (mask & ACTION_FOLD)   offset += snprintf(buffer, size + offset, "\"fold|\",");
+    if (mask & ACTION_ALL_IN) offset += snprintf(buffer, size + offset, "\"all_in\",");
+    if (offset) buffer[offset] = ']';
+    return offset;
 }
 
 void broadcast(table_t *table, const char *fmt, ...)
@@ -605,7 +623,7 @@ int handle_action(table_t *table, int index, action_t action, int value)
 
     table->turn = next;
     table_reset_timeout(table, (player_next->user == NULL));
-    report(table);
+    report_table(table);
     return TEXAS_RET_SUCCESS;
 }
 
@@ -702,3 +720,27 @@ int table_switch(table_t *table)
     return TEXAS_RET_SUCCESS;
 }
 
+void report_table(table_t *table)
+{
+    char string_buffer[1024], json_buffer[1024], mask_buffer[1024];
+    int i;
+
+    action_to_string(table->action_mask, mask_buffer, sizeof(mask_buffer));
+    snprintf(string_buffer, sizeof(string_buffer), "turn %s bet %d pot %d mask %s",
+            current_player(table)->user->name, table->bet, table->pot, mask_buffer);
+
+    action_to_json(table->action_mask, mask_buffer, sizeof(mask_buffer));
+    snprintf(json_buffer, sizeof(json_buffer), "{type:\"table\",data:{turn:%d,bet:%d,pot:%d,mask:%s}",
+            table->turn, table->bet, table->pot, mask_buffer);
+
+    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
+        if (table->players[i]->user) {
+            send_msg_new(table->players[i]->user, string_buffer, json_buffer);
+        }
+    }
+}
+
+void report_player(table_t *table, int index)
+{
+    char string_buffer[1024], json_buffer[1024], mask_buffer[1024];
+}

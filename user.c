@@ -33,28 +33,45 @@ void send_msg(user_t *user, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
-    evbuffer_add_printf(bufferevent_get_output(user->bev), "%s", user->prompt);
+    send_msgv(user, fmt, ap);
     va_end(ap);
+}
+
+void send_msgv(user_t *user, const char *fmt, va_list ap)
+{    
+        evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
+        evbuffer_add_printf(bufferevent_get_output(user->bev), "%s", user->prompt);
 }
 
 void send_msg_raw(user_t *user, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
+    send_msgv_raw(user, fmt, ap);
     va_end(ap);
-}
-
-void send_msgv(user_t *user, const char *fmt, va_list ap)
-{
-    evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
-    evbuffer_add_printf(bufferevent_get_output(user->bev), "%s", user->prompt);
 }
 
 void send_msgv_raw(user_t *user, const char *fmt, va_list ap)
 {
     evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
+}
+
+void send_msg_new(user_t *user, const char *fmt1, const *fmt2, ...)
+{    
+    va_list ap;
+    va_start(ap, fmt2);
+    send_msgv_new(user, fmt1, fmt2, ap);
+    va_end(ap, fmt2);
+}
+
+void send_msgv_new(user_t *user, const char *fmt1, const char *fmt2, va_list ap)
+{    
+    if (user->type == USER_TYPE_TELNET) {
+        evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt1, ap);
+        evbuffer_add_printf(bufferevent_get_output(user->bev), "%s", user->prompt);
+    } else if (user->type == USER_TYPE_WEBSOCKET) {
+        evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt2, ap);
+    }
 }
 
 int user_save(user_t *user)

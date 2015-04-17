@@ -27,6 +27,7 @@
 "help"                      { return HELP;                                                                  }
 "chat"                      { return CHAT;                                                                  }
 "prompt"                    { return PROMPT;                                                                }
+"type"                      { return TYPE;                                                                  }
 "+"                         { return ADD;                                                                   }
 "-"                         { return SUB;                                                                   }
 "*"                         { return MUL;                                                                   }
