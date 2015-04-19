@@ -56,12 +56,12 @@ void send_msgv_raw(user_t *user, const char *fmt, va_list ap)
     evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
 }
 
-void send_msg_new(user_t *user, const char *fmt1, const *fmt2, ...)
+void send_msg_new(user_t *user, const char *fmt1, const char *fmt2, ...)
 {    
     va_list ap;
     va_start(ap, fmt2);
     send_msgv_new(user, fmt1, fmt2, ap);
-    va_end(ap, fmt2);
+    va_end(ap);
 }
 
 void send_msgv_new(user_t *user, const char *fmt1, const char *fmt2, va_list ap)
@@ -71,6 +71,7 @@ void send_msgv_new(user_t *user, const char *fmt1, const char *fmt2, va_list ap)
         evbuffer_add_printf(bufferevent_get_output(user->bev), "%s", user->prompt);
     } else if (user->type == USER_TYPE_WEBSOCKET) {
         evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt2, ap);
+        evbuffer_add_printf(bufferevent_get_output(user->bev), "\n");
     }
 }
 
@@ -125,4 +126,10 @@ int user_load(const char *name, user_t *user)
     memcpy(&(user->money), buffer + offset, len);
     offset += len;
     return 0;
+}
+
+int user_add_money(user_t *user, int money)
+{
+    user->money += money;
+    return user_save(user);
 }

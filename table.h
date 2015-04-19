@@ -120,11 +120,13 @@ int handle_action(table_t *table, int index, action_t action, int value);
 int table_process(table_t *table);
 int table_switch(table_t *table);
 
-void broadcast(table_t *table, const char *fmt, ...);
+void broadcast(table_t *table, const char *fmt1, const char *fmt2, ...);
 void timeoutcb(evutil_socket_t fd, short events, void *arg);
 
 void report_table(table_t *table);
 void report_player(table_t *table, int index);
+int player_buy_chips(player_t *player, int chips);
+int table_chat(table_t *table, int index, const char *msg);
 
 extern table_t *g_tables;
 extern int g_num_tables;

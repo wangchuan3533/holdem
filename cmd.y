@@ -46,8 +46,8 @@ calclist: /* empty */
   | calclist CHAT STRING EOL                       { chat($3); free($3);                   }
   | calclist PROMPT STRING EOL                     { prompt($3); free($3);                 }
   | calclist TYPE NUMBER EOL                       { set_user_type($3);                    }
-  | calclist exp EOL                               { reply("%d", $2);                      }
-  | calclist EOL                                   { reply("");                            }
+  | calclist exp EOL                               { reply("%d","{\"type\":\"calc\",\"data\":{[%d]}}", $2);}
+  | calclist EOL                                   { reply("","{\"type\":\"empty\",\"data\":{}}");}
   ;
 
 exp: factor
