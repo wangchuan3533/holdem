@@ -13,14 +13,7 @@ server.listen(port, function () {
 // Routing
 app.use(express.static(__dirname + '/public'));
 
-// Chatroom
-
-// usernames which are currently connected to the chat
-var usernames = {};
-var numUsers = 0;
-
 io.on('connection', function (socket) {
-  var addedUser = false;
   socket.on('message', function (data) {
     if (socket.peer) {
       socket.peer.write(data.toString() + "\n");
@@ -33,23 +26,9 @@ io.on('connection', function (socket) {
     password = user.password;
     method   = user.method;
 
-    // we store the username in the socket session for this client
-    socket.username = username;
-    // add the client's username to the global list
-    usernames[username] = username;
-    ++numUsers;
-    addedUser = true;
-    socket.emit('login', {
-      numUsers: numUsers
-    });
-
-    socket.broadcast.emit('join', {
-      username: socket.username,
-      numUsers: numUsers
-    });
-
     peer = net.connect({port:10000}, function() {
       console.log(username + ' connected to peer server!');
+      peer.write("type 1\n");
       peer.write(method + ' '  + username + ' ' + password + "\n");
     });
     
@@ -57,28 +36,15 @@ io.on('connection', function (socket) {
       lines = resp.toString().split("\n");
       for (i = 0; i < lines.length; i++) {
         if (lines[i].length) {
-          socket.emit('message', {
-            username: '',
-            message: lines[i]
-          });
+          var msg = JSON.parse(lines[i]);
+          console.log(msg);
+          if (msg && msg.type && msg.data) {
+            socket.emit(msg.type, msg.data);
+          }
         }
       }
     });
     socket.peer = peer;
-  });
-
-  // when the client emits 'typing', we broadcast it to others
-  socket.on('typing', function () {
-    socket.broadcast.emit('typing', {
-      username: socket.username
-    });
-  });
-
-  // when the client emits 'stop typing', we broadcast it to others
-  socket.on('typing_off', function () {
-    socket.broadcast.emit('typing_off', {
-      username: socket.username
-    });
   });
 
   // when the user disconnects.. perform this
@@ -86,17 +52,6 @@ io.on('connection', function (socket) {
     // disconnect with the peer
     if (socket.peer) {
       socket.peer.destroy()
-    }
-    // remove the username from global usernames list
-    if (addedUser) {
-      delete usernames[socket.username];
-      --numUsers;
-
-      // echo globally that this client has left
-      socket.broadcast.emit('quit', {
-        username: socket.username,
-        numUsers: numUsers
-      });
     }
   });
 });

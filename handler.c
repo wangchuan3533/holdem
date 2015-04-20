@@ -13,7 +13,7 @@ int reg(const char *name, const char *password)
     CHECK_NOT_LOGIN(user);
 
     if (user_load(name, user) == 0) {
-        send_msg_new(user, "name %s already exist", "{\"type\":\"failure\",\"data\":{[\"name %s already exist\"]}}", name);
+        send_msg_new(user, "name %s already exist", "{\"type\":\"failure\",\"data\":{\"message\":\"name %s already exist\"}}", name);
         return -1;
     }
 
@@ -23,13 +23,13 @@ int reg(const char *name, const char *password)
     user->money = 100000;
 
     if (user_save(user) < 0) {
-        send_msg_new(user, "save user to db failed %s", "{\"type\":\"failure\",\"data\":{[\"save user to db failed %s\"]}}", name);
+        send_msg_new(user, "save user to db failed %s", "{\"type\":\"failure\",\"data\":{\"message\":\"save user to db failed %s\"}}", name);
         return -1;
     }
 
     HASH_ADD(hh, g_users, name, strlen(user->name), user);
     user->state |= USER_STATE_LOGIN;
-    send_msg_new(user, "welcome to texas holdem, %s, your money left is %d", "{\"type\":\"success\",\"data\":{[\"welcome to texas holdem, %s, your money left is %d\"]}}", user->name, user->money);
+    send_msg_new(user, "welcome to texas holdem, %s, your money left is %d", "{\"type\":\"login\",\"data\":{\"message\":\"welcome to texas holdem, %s, your money left is %d\"}}", user->name, user->money);
     return 0;
 }
 
@@ -43,22 +43,22 @@ int login(const char *name, const char *password)
     ASSERT_NOT_TABLE(user);
 
     if (user_load(name, user) < 0) {
-        send_msg_new(user, "user %s dose not exist", "{\"type\":\"failure\",\"data\":{[\"user %s dose not exist\"]}}", name);
+        send_msg_new(user, "user %s dose not exist", "{\"type\":\"failure\",\"data\":{\"message\":\"user %s dose not exist\"}}", name);
         return -1;
     }
     sha1(sha1_buf, password, strlen(password) << 3);
     if (bcmp(sha1_buf, user->password, 20) != 0) {
-        send_msg_new(user, "wrong password", "{\"type\":\"failure\",\"data\":{[\"wrong password\"]}}");
+        send_msg_new(user, "wrong password", "{\"type\":\"failure\",\"data\":{\"message\":\"wrong password\"}}");
         return -1;
     }
     HASH_FIND(hh, g_users, name, strlen(name), tmp);
     if (tmp) {
-        send_msg_new(user, "name %s already login", "{\"type\":\"failure\",\"data\":{[\"name %s already login\"]}}", name);
+        send_msg_new(user, "name %s already login", "{\"type\":\"failure\",\"data\":{\"message\":\"name %s already login\"}}", name);
         return -1;
     }
     HASH_ADD(hh, g_users, name, strlen(user->name), user);
     user->state |= USER_STATE_LOGIN;
-    send_msg_new(user, "welcome to texas holdem, %s, your money left is %d", "{\"type\":\"success\",\"data\":{[\"welcome to texas holdem, %s, your money left is %d\"]}}", user->name, user->money);
+    send_msg_new(user, "welcome to texas holdem, %s, your money left is %d", "{\"type\":\"login\",\"data\":{\"message\":\"welcome to texas holdem, %s, your money left is %d\"}}", user->name, user->money);
     return 0;
 }
 
@@ -76,11 +76,11 @@ int logout()
     HASH_DELETE(hh, g_users, user);
 
     if (user_save(user) < 0) {
-        send_msg_new(user, "save user to db failed %s", "{\"type\":\"failure\",\"data\":{[\"save user to db failed %s\"]}}", user->name);
+        send_msg_new(user, "save user to db failed %s", "{\"type\":\"failure\",\"data\":{\"message\":\"save user to db failed %s\"}}", user->name);
         return -1;
     }
 
-    send_msg_new(user, "bye %s", "{\"type\":\"success\",\"data\":{[\"bye %s\"]}}", user->name);
+    send_msg_new(user, "bye %s", "{\"type\":\"success\",\"data\":{\"message\":\"bye %s\"}}", user->name);
     user->state &= ~USER_STATE_LOGIN;
     return 0;
 }
@@ -95,13 +95,13 @@ int create_table(const char *name)
 
     HASH_FIND(hh, g_tables, name, strlen(name), tmp);
     if (tmp) {
-        send_msg_new(user, "table %s already exist", "{\"type\":\"failure\",\"data\":{[\"table %s already exist\"]}}", name);
+        send_msg_new(user, "table %s already exist", "{\"type\":\"failure\",\"data\":{\"message\":\"table %s already exist\"}}", name);
         return -1;
     }
 
     table = table_create();
     if (table == NULL) {
-        send_msg_new(user, "table %s created failed", "{\"type\":\"failure\",\"data\":{[\"table %s created failed\"]}}", name);
+        send_msg_new(user, "table %s created failed", "{\"type\":\"failure\",\"data\":{\"message\":\"table %s created failed\"}}", name);
         return -1;
     }
     table->base = bufferevent_get_base(user->bev);
@@ -110,7 +110,7 @@ int create_table(const char *name)
     strncpy(table->name, name, sizeof(table->name));
     HASH_ADD(hh, g_tables, name, strlen(table->name), table);
     if (player_join(table, user) < 0) {
-        send_msg_new(user, "join table %s failed", "{\"type\":\"failure\",\"data\":{[\"join table %s failed\"]}}", table->name);
+        send_msg_new(user, "join table %s failed", "{\"type\":\"failure\",\"data\":{\"message\":\"join table %s failed\"}}", table->name);
         return -1;
     }
 
@@ -127,14 +127,16 @@ int join_table(const char *name)
 
     HASH_FIND(hh, g_tables, name, strlen(name), table);
     if (!table) {
-        send_msg_new(user, "table %s dose not exist", "{\"type\":\"failure\",\"data\":{[\"table %s dose not exist\"]}}", name);
+        send_msg_new(user, "table %s dose not exist", "{\"type\":\"failure\",\"data\":{\"message\":\"table %s dose not exist\"}}", name);
         return -1;
     }
 
     if (player_join(table, user) < 0) {
-        send_msg_new(user, "join table %s failed", "{\"type\":\"failure\",\"data\":{[\"join table %s failed\"]}}", table->name);
+        send_msg_new(user, "join table %s failed", "{\"type\":\"failure\",\"data\":{\"message\":\"join table %s failed\"}}", table->name);
         return -1;
     }
+
+    show_players_in_table(name);
 
     return 0;
 }
@@ -148,7 +150,7 @@ int quit_table()
     CHECK_TABLE(user);
 
     assert(player_quit(user) == 0);
-    send_msg_new(user, "quit table %s success", "{\"type\":\"success\",\"data\":{[\"quit table %s success\"]}}", table->name);
+    send_msg_new(user, "quit table %s success", "{\"type\":\"success\",\"data\":{\"message\":\"quit table %s success\"}}", table->name);
     return 0;
 }
 
@@ -159,7 +161,7 @@ int exit_game()
     if (user->state & USER_STATE_LOGIN) {
         assert(logout() == 0);
     }
-    send_msg_new(user, "bye", "{\"type\":\"success\",\"data\":{[\"bye\"]}}");
+    send_msg_new(user, "bye", "{\"type\":\"success\",\"data\":{\"message\":\"bye\"}}");
     bufferevent_free(user->bev);
     user_destroy(user);
     return 0;
@@ -173,7 +175,7 @@ int show_tables()
     int string_offset = 0, json_offset = 0;
 
     CHECK_LOGIN(user);
-    json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "{\"type\":\"tables\",\"data\":{[");
+    json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "{\"type\":\"tables\",\"data\":{\"tables\":[");
     HASH_ITER(hh, g_tables, table, tmp) {
         string_offset += snprintf(string_buffer + string_offset, sizeof(string_buffer) - string_offset, "%s ", table->name);
         json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "\"%s\",", table->name);
@@ -193,7 +195,7 @@ int show_players()
     char string_buffer[1024], json_buffer[1024];
     int string_offset = 0, json_offset = 0;
 
-    json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "{\"type\":\"users\",\"data\":{[");
+    json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "{\"type\":\"users\",\"data\":{\"users\":[");
     HASH_ITER(hh, g_users, tmp1, tmp2) {
         string_offset += snprintf(string_buffer + string_offset, sizeof(string_buffer) - string_offset, "%s ", tmp1->name);
         json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "\"%s\",", tmp1->name);
@@ -210,28 +212,30 @@ int show_players_in_table(const char *name)
 {
     table_t *table;
     user_t *user = g_current_user;
-    char string_buffer[1024], json_buffer[1024];
-    int string_offset = 0, json_offset = 0, i;
+    char string_buffer[1024], json_buffer[1024], prompt_back[MAX_NAME];
+    int i;
 
     CHECK_LOGIN(user);
     HASH_FIND(hh, g_tables, name, strlen(name), table);
     if (!table) {
-        send_msg_new(user, "table %s dose not exist", "{\"type\":\"failure\",\"data\":{[\"table %s dose not exist\"]}}", name);
+        send_msg_new(user, "table %s dose not exist", "{\"type\":\"failure\",\"data\":{\"message\":\"table %s dose not exist\"}}", name);
         return -1;
     }
-    json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "{\"type\":\"users\",\"data\":{[");
+    // backup prompt
+    strncpy(prompt_back, user->prompt, sizeof(prompt_back));
+    snprintf(user->prompt, sizeof(user->prompt), "\n");
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]->user) {
-            send_msg_raw(user, "%s ", table->players[i]->user->name);
-            string_offset += snprintf(string_buffer + string_offset, sizeof(string_buffer) - string_offset, "%s ", table->players[i]->user->name);
-            json_offset += snprintf(json_buffer + json_offset, sizeof(json_buffer) - json_offset, "\"%s\",", table->players[i]->user->name);
+            snprintf(string_buffer, sizeof(string_buffer), "player %d name %s chips %d folded %d",
+                    i, table->players[i]->user->name, table->players[i]->chips,
+                    table->players[i]->state == PLAYER_STATE_FOLDED);
+            snprintf(json_buffer, sizeof(json_buffer), "{\"type\":\"player\",\"data\":{\"player\":%d,\"name\":\"%s\",\"chips\":%d,\"folded\":%d}}",
+                    i, table->players[i]->user->name, table->players[i]->chips,
+                    table->players[i]->state == PLAYER_STATE_FOLDED);
+            send_msg_new(user, string_buffer, json_buffer);
         }
     }
-    if (json_buffer[json_offset - 1] != '[') {
-        json_offset--;
-        string_offset--;
-    }
-    send_msg_new(user, string_buffer, json_buffer);
+    strncpy(user->prompt, prompt_back, sizeof(user->prompt));
     return 0;
 }
 
@@ -240,10 +244,10 @@ int pwd()
     user_t *user = g_current_user;
 
     if (user->state & USER_STATE_TABLE) {
-        send_msg_new(user, "%s", "{\"type\":\"success\",\"data\":{[\"%s\"]}}", user->table->name);
+        send_msg_new(user, "%s", "{\"type\":\"success\",\"data\":{\"message\":\"%s\"}}", user->table->name);
         return 0;
     }
-    send_msg_new(user, "root", "{\"type\":\"success\",\"data\":{[\"root\"]}}");
+    send_msg_new(user, "root", "{\"type\":\"success\",\"data\":{\"message\":\"root\"}}");
     return 0;
 }
 
@@ -302,7 +306,7 @@ int all_in()
 int yyerror(char *s)
 {
     user_t *user = g_current_user;
-    send_msg_new(user, "%s", "{\"type\":\"failure\",\"data\":{[\"%s\"]}}", s);
+    send_msg_new(user, "%s", "{\"type\":\"failure\",\"data\":{\"message\":\"%s\"}}", s);
     return 0;
 }
 
@@ -322,7 +326,7 @@ int print_help()
         "help\n"
     ;
 
-    send_msg_new(user, "%s", "{\"type\":\"success\",\"data\":{[\"%s\"]}}", usage);
+    send_msg_new(user, "%s", "{\"type\":\"success\",\"data\":{\"message\":\"%s\"}}", usage);
     return 0;
 }
 
@@ -352,7 +356,7 @@ int prompt(const char *str)
     user_t *user = g_current_user;
 
     snprintf(user->prompt, sizeof(user->prompt), "\n%s", str);
-    send_msg_new(user, "set prompt success", "{\"type\":\"success\",\"data\":{[\"set prompt success\"]}}");
+    send_msg_new(user, "set prompt success", "{\"type\":\"success\",\"data\":{\"message\":\"set prompt success\"}}");
     return 0;
 }
 
@@ -365,6 +369,6 @@ int set_user_type(int type)
     } else {
         user->type = USER_TYPE_TELNET;
     }
-    send_msg_new(user, "set type success", "{\"type\":\"success\",\"data\":{[\"set type success\"]}}");
+    send_msg_new(user, "set type success", "{\"type\":\"success\",\"data\":{\"message\":\"set type success\"}}");
     return 0;
 }

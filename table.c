@@ -90,7 +90,7 @@ void table_pre_flop(table_t *table)
 
     if (table->num_available < MIN_PLAYERS) {
         broadcast(table, "not enough players to start game: %d",
-                "{\"type\":\"message\",\"data\":{[\"not enough players to start game: %d\"]}}", table->num_available);
+                "{\"type\":\"failure\",\"data\":{\"message\":\"not enough players to start game: %d\"}}", table->num_available);
         return;
     }
 
@@ -101,7 +101,7 @@ void table_pre_flop(table_t *table)
                 table->players[i]->hand_cards[0] = get_card(&table->deck);
                 table->players[i]->hand_cards[1] = get_card(&table->deck);
                 table->num_active++;
-                send_msg_new(table->players[i]->user, "[PRE_FLOP] %s, %s", "{\"type\":\"pre_flop\",\"data\":{[\"%s\",\"%s\"]}}",
+                send_msg_new(table->players[i]->user, "[PRE_FLOP] %s, %s", "{\"type\":\"pre_flop\",\"data\":{\"cards\":[\"%s\",\"%s\"]}}",
                         card_to_string(table->players[i]->hand_cards[0]),
                         card_to_string(table->players[i]->hand_cards[1]));
         }
@@ -148,7 +148,7 @@ void table_flop(table_t *table)
         }
     }
 
-    broadcast(table, "[FLOP] %s, %s, %s", "{\"type\":\"cards\",\"data\":{[\"%s\",\"%s\",\"%s\"]}",
+    broadcast(table, "[FLOP] %s, %s, %s", "{\"type\":\"cards\",\"data\":{\"cards\":[\"%s\",\"%s\",\"%s\"]}",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]));
@@ -172,7 +172,7 @@ void table_turn(table_t *table)
         }
     }
 
-    broadcast(table, "[TURN] %s %s %s %s", "{\"type\":\"cards\",\"data\":{[\"%s\",\"%s\",\"%s\",\"%s\"]}",
+    broadcast(table, "[TURN] %s %s %s %s", "{\"type\":\"cards\",\"data\":{\"cards\":[\"%s\",\"%s\",\"%s\",\"%s\"]}",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]),
@@ -197,7 +197,7 @@ void table_river(table_t *table)
         }
     }
 
-    broadcast(table, "[RIVER] %s %s %s %s %s", "{\"type\":\"cards\",\"data\":{[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]}",
+    broadcast(table, "[RIVER] %s %s %s %s %s", "{\"type\":\"cards\",\"data\":{\"cards\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]}",
             card_to_string(table->community_cards[0]),
             card_to_string(table->community_cards[1]),
             card_to_string(table->community_cards[2]),
@@ -331,14 +331,14 @@ int action_to_string(action_t mask, char *buffer, int size)
 {
     int offset = 0;
     buffer[offset++] = '[';
-    if (mask & ACTION_BET)    offset += snprintf(buffer, size + offset, "bet|");
-    if (mask & ACTION_RAISE)  offset += snprintf(buffer, size + offset, "raise|");
-    if (mask & ACTION_CALL)   offset += snprintf(buffer, size + offset, "call|");
-    if (mask & ACTION_CHCEK)  offset += snprintf(buffer, size + offset, "check|");
-    if (mask & ACTION_FOLD)   offset += snprintf(buffer, size + offset, "fold|");
-    if (mask & ACTION_ALL_IN) offset += snprintf(buffer, size + offset, "all_in|");
+    if (mask & ACTION_BET)    offset += snprintf(buffer + offset, size - offset, "bet|");
+    if (mask & ACTION_RAISE)  offset += snprintf(buffer + offset, size - offset, "raise|");
+    if (mask & ACTION_CALL)   offset += snprintf(buffer + offset, size - offset, "call|");
+    if (mask & ACTION_CHCEK)  offset += snprintf(buffer + offset, size - offset, "check|");
+    if (mask & ACTION_FOLD)   offset += snprintf(buffer + offset, size - offset, "fold|");
+    if (mask & ACTION_ALL_IN) offset += snprintf(buffer + offset, size - offset, "all_in|");
     if (offset > 1) offset--;
-    buffer[offset++] = ']';
+    offset += snprintf(buffer + offset, size - offset, "]");
     return offset;
 }
 
@@ -346,14 +346,14 @@ int action_to_json(action_t mask, char *buffer, int size)
 {
     int offset = 0;
     buffer[offset++] = '[';
-    if (mask & ACTION_BET)    offset += snprintf(buffer, size + offset, "\"bet\",");
-    if (mask & ACTION_RAISE)  offset += snprintf(buffer, size + offset, "\"raise\",");
-    if (mask & ACTION_CALL)   offset += snprintf(buffer, size + offset, "\"call\",");
-    if (mask & ACTION_CHCEK)  offset += snprintf(buffer, size + offset, "\"check\",");
-    if (mask & ACTION_FOLD)   offset += snprintf(buffer, size + offset, "\"fold|\",");
-    if (mask & ACTION_ALL_IN) offset += snprintf(buffer, size + offset, "\"all_in\",");
+    if (mask & ACTION_BET)    offset += snprintf(buffer + offset, size - offset, "\"bet\",");
+    if (mask & ACTION_RAISE)  offset += snprintf(buffer + offset, size - offset, "\"raise\",");
+    if (mask & ACTION_CALL)   offset += snprintf(buffer + offset, size - offset, "\"call\",");
+    if (mask & ACTION_CHCEK)  offset += snprintf(buffer + offset, size - offset, "\"check\",");
+    if (mask & ACTION_FOLD)   offset += snprintf(buffer + offset, size - offset, "\"fold\",");
+    if (mask & ACTION_ALL_IN) offset += snprintf(buffer + offset, size - offset, "\"all_in\",");
     if (offset > 1) offset--;
-    buffer[offset++] = ']';
+    offset += snprintf(buffer + offset, size - offset, "]");
     return offset;
 }
 
@@ -390,7 +390,7 @@ int player_join(table_t *table, user_t *user)
             if (player->chips < table->minimum_bet && player->user->money > 1000 ) {
                 player_buy_chips(player, 1000);
             }
-            broadcast(table, "player %d, %s joined, chips %d", "{\"type\":\"player\",\"data\":{\"player\":%d,\"name\":\"%s\",\"chips\":%d}}",
+            broadcast(table, "player %d %s joined chips %d", "{\"type\":\"player\",\"data\":{\"player\":%d,\"name\":\"%s\",\"chips\":%d,\"folded\":0}}",
                     i, user->name, player->chips);
             return TEXAS_RET_SUCCESS;
         }
@@ -415,7 +415,7 @@ int player_quit(user_t *user)
     user->table = NULL;
     user->index = -1;
     user->state &= ~USER_STATE_TABLE;
-    broadcast(table, "player %d quit", "{\"type\":\"player\",\"data\":{\"player\":%d,\"name\":\"\",\"chips\":0}}", index);
+    broadcast(table, "player %d quit", "{\"type\":\"player\",\"data\":{\"player\":%d,\"name\":\"\",\"chips\":0,\"folded\":0}}", index);
     return TEXAS_RET_SUCCESS;
 }
 
@@ -542,14 +542,14 @@ int handle_action(table_t *table, int index, action_t action, int value)
     assert(player->user);
     // check action
     if (!(action & table->action_mask)) {
-        send_msg_new(player->user, "invalid action", "{\"type\":\"failure\",\"data\":{[\"invalid action\"]}}");
+        send_msg_new(player->user, "invalid action", "{\"type\":\"failure\",\"data\":{\"message\":\"invalid action\"}}");
         return TEXAS_RET_ACTION;
     }
 
     switch (action) {
     case ACTION_BET:
         if (player_bet(table, index, value) != TEXAS_RET_SUCCESS) {
-            send_msg_new(player->user, "bet failed", "{\"type\":\"failure\",\"data\":{[\"bet failed\"]}}");
+            send_msg_new(player->user, "bet failed", "{\"type\":\"failure\",\"data\":{\"message\":\"bet failed\"}}");
             return TEXAS_RET_FAILURE;
         }
         broadcast(table, "player %d bet %d", "{\"type\":\"action\",\"data\":{\"player\":%d, \"action\":\"bet\",\"chips\":%d}}",
@@ -557,7 +557,7 @@ int handle_action(table_t *table, int index, action_t action, int value)
         break;
     case ACTION_RAISE:
         if (player_raise(table, index, value) != TEXAS_RET_SUCCESS) {
-            send_msg_new(player->user, "bet failed", "{\"type\":\"failure\",\"data\":{[\"bet failed\"]}}");
+            send_msg_new(player->user, "bet failed", "{\"type\":\"failure\",\"data\":{\"message\":\"bet failed\"}}");
             return TEXAS_RET_FAILURE;
         }
         broadcast(table, "player %d raise %d", "{\"type\":\"action\",\"data\":{\"player\":%d, \"action\":\"raise\",\"chips\":%d}}",
@@ -565,28 +565,28 @@ int handle_action(table_t *table, int index, action_t action, int value)
         break;
     case ACTION_CALL:
         if (player_call(table, index) != TEXAS_RET_SUCCESS) {
-            send_msg_new(player->user, "call failed", "{\"type\":\"failure\",\"data\":{[\"call failed\"]}}");
+            send_msg_new(player->user, "call failed", "{\"type\":\"failure\",\"data\":{\"message\":\"call failed\"}}");
             return TEXAS_RET_FAILURE;
         }
         broadcast(table, "player %d call", "{\"type\":\"action\",\"data\":{\"player\":%d, \"action\":\"call\"}}", index);
         break;
     case ACTION_CHCEK:
         if (player_check(table, index) != TEXAS_RET_SUCCESS) {
-            send_msg_new(player->user, "check failed", "{\"type\":\"failure\",\"data\":{[\"check failed\"]}}");
+            send_msg_new(player->user, "check failed", "{\"type\":\"failure\",\"data\":{\"message\":\"check failed\"}}");
             return TEXAS_RET_FAILURE;
         }
         broadcast(table, "player %d check", "{\"type\":\"action\",\"data\":{\"player\":%d, \"action\":\"check\"}}", index);
         break;
     case ACTION_ALL_IN:
         if (player_all_in(table, index) != TEXAS_RET_SUCCESS) {
-            send_msg_new(player->user, "all in failed", "{\"type\":\"failure\",\"data\":{[\"all in failed\"]}}");
+            send_msg_new(player->user, "all in failed", "{\"type\":\"failure\",\"data\":{\"message\":\"all in failed\"}}");
             return TEXAS_RET_FAILURE;
         }
         broadcast(table, "player %d check", "{\"type\":\"action\",\"data\":{\"player\":%d, \"action\":\"check\"}}", index);
         break;
     case ACTION_FOLD:
         if (player_fold(table, index) != TEXAS_RET_SUCCESS) {
-            send_msg_new(player->user, "fold failed", "{\"type\":\"failure\",\"data\":{[\"fold failed\"]}}");
+            send_msg_new(player->user, "fold failed", "{\"type\":\"failure\",\"data\":{\"message\":\"fold failed\"}}");
             return TEXAS_RET_FAILURE;
         }
         broadcast(table, "player %d fold", "{\"type\":\"action\",\"data\":{\"player\":%d, \"action\":\"fold\"}}", index);
@@ -757,7 +757,7 @@ void report_table(table_t *table)
             current_player(table)->user->name, table->bet, table->pot, mask_buffer);
 
     action_to_json(table->action_mask, mask_buffer, sizeof(mask_buffer));
-    snprintf(json_buffer, sizeof(json_buffer), "{type:\"table\",data:{turn:%d,bet:%d,pot:%d,mask:%s}",
+    snprintf(json_buffer, sizeof(json_buffer), "{\"type\":\"table\",\"data\":{\"turn\":%d,\"bet\":%d,\"pot\":%d,\"mask\":\"%s\"}}",
             table->turn, table->bet, table->pot, mask_buffer);
 
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
@@ -769,7 +769,15 @@ void report_table(table_t *table)
 
 void report_player(table_t *table, int index)
 {
-    //char string_buffer[1024], json_buffer[1024], mask_buffer[1024];
+    char string_buffer[1024], json_buffer[1024];
+
+    snprintf(string_buffer, sizeof(string_buffer), "player %d name %s chips %d folded %d",
+            index, table->players[index]->user->name, table->players[index]->chips,
+            table->players[index]->state == PLAYER_STATE_FOLDED);
+    snprintf(json_buffer, sizeof(json_buffer), "{\"type\":\"player\",\"data\":{\"player\":%d,\"name\":\"%s\",\"chips\":%d,\"folded\":%d}}",
+            index, table->players[index]->user->name, table->players[index]->chips,
+            table->players[index]->state == PLAYER_STATE_FOLDED);
+    broadcast(table, string_buffer, json_buffer);
 }
 
 int table_chat(table_t *table, int index, const char *msg)

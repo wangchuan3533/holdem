@@ -42,28 +42,28 @@ typedef struct user_s {
 
 #define CHECK_LOGIN(user) do {\
     if (!((user)->state & USER_STATE_LOGIN)) {\
-        send_msg_new((user), "you are not logged in", "{\"type\":\"failure\",\"data\":{[\"you are not logged in\"]}}");\
+        send_msg_new((user), "you are not logged in", "{\"type\":\"failure\",\"data\":{\"message\":\"you are not logged in\"}}");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_NOT_LOGIN(user) do {\
     if ((user)->state & USER_STATE_LOGIN) {\
-        send_msg_new((user), "you are already logged in as %s", "{\"type\":\"failure\",\"data\":{[\"you are already logged in as %s\"]}}", (user)->name);\
+        send_msg_new((user), "you are already logged in as %s", "{\"type\":\"failure\",\"data\":{\"message\":\"you are already logged in as %s\"}}", (user)->name);\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_TABLE(user) do {\
     if (!((user)->state & USER_STATE_TABLE)) {\
-        send_msg_new((user), "you are not in table", "{\"type\":\"failure\",\"data\":{[\"you are not in table\"]}}");\
+        send_msg_new((user), "you are not in table", "{\"type\":\"failure\",\"data\":{\"message\":\"you are not in table\"}}");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_NOT_TABLE(user) do {\
     if ((user)->state & USER_STATE_TABLE) {\
-        send_msg_new((user), "you are already in table", "{\"type\":\"failure\",\"data\":{[\"you are already in table\"]}}");\
+        send_msg_new((user), "you are already in table", "{\"type\":\"failure\",\"data\":{\"message\":\"you are already in table\"}}");\
         return -1;\
     }\
 } while(0)
