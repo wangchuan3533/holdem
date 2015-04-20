@@ -86,9 +86,7 @@ ul {
   font-weight: 100;
 }
 
-/* Chat page */
-
-.chat.page {
+.main.page {
   display: none;
 }
 
@@ -157,6 +155,9 @@ ul {
   height: 100px;
 }
 
+.turn {
+  color: red;
+}
 
 .card1, .card2 {
 color: red;

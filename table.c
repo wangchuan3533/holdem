@@ -302,6 +302,7 @@ void table_finish(table_t *table)
             broadcast(table, "player %d wins %d", possible_winners[k] - table->players[0], chips);
         }
     }
+    table_prepare(table);
 }
 
 inline void table_init_timeout(table_t *table)

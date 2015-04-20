@@ -15,9 +15,15 @@ $(function() {
   var $registerButton = $('.registerButton'); // register button
   var $messages = $('.messages'); // Messages area
   var $inputMessage = $('.inputMessage'); // Input message input box
-
   var $loginPage = $('.login.page'); // The login page
   var $chatPage = $('.main.page'); // The chatroom page
+  var $betButton = $('.controlArea input[value="bet"]');
+  var $checkButton = $('.controlArea input[value="check"]');
+  var $raiseButton = $('.controlArea input[value="raise"]');
+  var $callButton = $('.controlArea input[value="call"]');
+  var $foldButton = $('.controlArea input[value="fold"]');
+  var $allInButton = $('.controlArea input[value="all_in"]');
+  var $rangeControl = $('.controlArea input[type="range"]');
 
   // Prompt for setting a username
   var username;
@@ -177,22 +183,48 @@ $(function() {
     $('.tableArea .name').text(data.name);
     $('.tableArea .chips').text(data.chips);
     $('.tableArea .bet').text(data.bet);
-    $('.tableArea .turn').text(data.turn);
     $('.tableArea .pot').text(data.pot);
     $('.tableArea .actions').text(data.actions);
+    $('.playersArea .player').removeClass('turn');
+    $('.controlArea input[type="button"]').prop('disabled', true);
+    for (i = 0; i < data.actions.length; i++) {
+      $('.controlArea input[value="' + data.actions[i] + '"]').prop('disabled', false);
+    }
     if (data.players && data.players.length) {
       for (i = 0; i < data.players.length; i++) {
+        if (i == data.turn) {
+          $('.playersArea .player').eq(i).addClass('turn');
+        }
         player = data.players[i];
-        $('#player' + i + ' .name').text(player.name);
-        $('#player' + i + ' .chips').text(player.chips);
-        $('#player' + i + ' .bet').text(player.bet);
+        $('.playersArea .player').eq(i).find('.name').text(player.name);
+        $('.playersArea .player').eq(i).find('.chips').text(player.chips);
+        $('.playersArea .player').eq(i).find('.bet').text(player.bet);
         if (player.cards) {
-          $('#player' + i + ' .cards').text(player.cards);
+          $('.playersArea .player').eq(i).find('.cards').text(player.cards);
         }
         if (player.hand) {
-          $('#player' + i + ' .hand').text(player.hand);
+          $('.playersArea .player').eq(i).find('.hand').text(player.hand);
         }
       }
     }
+
+    $betButton.click(function() {
+      socket.emit('message', 'bet ' + $rangeControl.prop('value'));
+    });
+    $raiseButton.click(function() {
+      socket.emit('message', 'raise ' + $rangeControl.prop('value'));
+    });
+    $checkButton.click(function() {
+      socket.emit('message', 'check');
+    });
+    $foldButton.click(function() {
+      socket.emit('message', 'fold');
+    });
+    $callButton.click(function() {
+      socket.emit('message', 'call');
+    });
+    $allInButton.click(function() {
+      socket.emit('message', 'all in');
+    });
   });
 });
