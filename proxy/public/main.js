@@ -49,7 +49,7 @@ $(function() {
     // Prevent markup from being injected into the message
     message = cleanInput(message);
     // if there is a non-empty message and a socket connection
-    if (message && connected) {
+    if (message/* && connected*/) {
       $inputMessage.val('');
       addChatMessage({
         username: username,
@@ -168,12 +168,31 @@ $(function() {
 
   // Whenever the server emits 'new message', update the chat body
   socket.on('message', function (data) {
+    console.log(data);
     addChatMessage(data);
   });
 
-  socket.on('player', function(data) {
-    $('#player' + data.player + ' .name').text(data.name);
-    $('#player' + data.player + ' .chips').text(data.chips);
-    $('#player' + data.player + ' .folded').text(data.folded);
+  socket.on('table', function (data) {
+    console.log(data);
+    $('.tableArea .name').text(data.name);
+    $('.tableArea .chips').text(data.chips);
+    $('.tableArea .bet').text(data.bet);
+    $('.tableArea .turn').text(data.turn);
+    $('.tableArea .pot').text(data.pot);
+    $('.tableArea .actions').text(data.actions);
+    if (data.players && data.players.length) {
+      for (i = 0; i < data.players.length; i++) {
+        player = data.players[i];
+        $('#player' + i + ' .name').text(player.name);
+        $('#player' + i + ' .chips').text(player.chips);
+        $('#player' + i + ' .bet').text(player.bet);
+        if (player.cards) {
+          $('#player' + i + ' .cards').text(player.cards);
+        }
+        if (player.hand) {
+          $('#player' + i + ' .hand').text(player.hand);
+        }
+      }
+    }
   });
 });

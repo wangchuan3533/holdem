@@ -42,28 +42,28 @@ typedef struct user_s {
 
 #define CHECK_LOGIN(user) do {\
     if (!((user)->state & USER_STATE_LOGIN)) {\
-        send_msg_new((user), "you are not logged in", "{\"type\":\"failure\",\"data\":{\"message\":\"you are not logged in\"}}");\
+        send_msg((user), "you are not logged in");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_NOT_LOGIN(user) do {\
     if ((user)->state & USER_STATE_LOGIN) {\
-        send_msg_new((user), "you are already logged in as %s", "{\"type\":\"failure\",\"data\":{\"message\":\"you are already logged in as %s\"}}", (user)->name);\
+        send_msg((user), "you are already logged in as %s", (user)->name);\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_TABLE(user) do {\
     if (!((user)->state & USER_STATE_TABLE)) {\
-        send_msg_new((user), "you are not in table", "{\"type\":\"failure\",\"data\":{\"message\":\"you are not in table\"}}");\
+        send_msg((user), "you are not in table");\
         return -1;\
     }\
 } while(0)
 
 #define CHECK_NOT_TABLE(user) do {\
     if ((user)->state & USER_STATE_TABLE) {\
-        send_msg_new((user), "you are already in table", "{\"type\":\"failure\",\"data\":{\"message\":\"you are already in table\"}}");\
+        send_msg((user), "you are already in table");;\
         return -1;\
     }\
 } while(0)
@@ -77,8 +77,6 @@ void send_msg(user_t *user, const char *fmt, ...);
 void send_msgv(user_t *user, const char *fmt, va_list ap);
 void send_msg_raw(user_t *user, const char *fmt, ...);
 void send_msgv_raw(user_t *user, const char *fmt, va_list ap);
-void send_msg_new(user_t *user, const char *fmt1, const char *fmt2, ...);
-void send_msgv_new(user_t *user, const char *fmt1, const char *fmt2, va_list ap);
 int user_save(user_t *user);
 int user_load(const char *name, user_t *user);
 int user_add_money(user_t *user, int money);

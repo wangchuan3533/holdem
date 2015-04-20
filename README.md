@@ -90,3 +90,4 @@ http://121.42.166.108:8899/
 - burn card
 - table start bug fix
 - sendmsg() bug
+- timeout bug

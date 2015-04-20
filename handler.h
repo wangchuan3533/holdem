@@ -26,7 +26,7 @@ int fold();
 int check();
 int all_in();
 int print_help();
-int reply(const char *fmt1, const char *fmt2, ...);
+int reply(const char *fmt, ...);
 int chat(const char *str);
 int prompt(const char *str);
 int set_user_type(int type);
