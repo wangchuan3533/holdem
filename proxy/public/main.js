@@ -231,7 +231,6 @@ $(function() {
   socket.on('table', function (table) {
     console.log(table);
     $('.tableArea .name').text(table.name);
-    $('.tableArea .chips').text(table.chips);
     $('.tableArea .bet').text(table.bet);
     $('.tableArea .pot').text(table.pot);
     $('.playersArea .player').removeClass('turn');
