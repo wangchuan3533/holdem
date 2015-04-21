@@ -24,6 +24,7 @@ $(function() {
   var $foldButton = $('.controlArea input[value="fold"]');
   var $allInButton = $('.controlArea input[value="all_in"]');
   var $rangeControl = $('.controlArea input[type="range"]');
+  var $rangeValue = $('.controlArea .rangeValue');
 
   // Prompt for setting a username
   var username;
@@ -181,7 +182,50 @@ $(function() {
   // Whenever the server emits 'new message', update the chat body
   socket.on('message', function (data) {
     console.log(data);
-    addChatMessage(data);
+    log(data.message, {
+    });
+    //addChatMessage(data);
+  });
+
+  socket.on('tables', function (data) {
+    console.log(data);
+    $('.hallArea .tables .table').remove();
+    for (i = 0; i < data.tables.length; i++) {
+      $table = $('<input type="button" class="table" />').prop('value', data.tables[i]);
+      $table.click(function () {
+        socket.emit('message', 'join ' + this.value);
+      });
+      $('.hallArea .tables').append($table);
+    }
+  });
+
+  socket.on('users', function (data) {
+    console.log(data);
+    $('.hallArea .users').text(data.users);
+  });
+
+  socket.on('cards', function (data) {
+    if (data.cards && data.cards.length) {
+      $('.controlArea .cards .card1').remove();
+      $('.controlArea .cards .card2').remove();
+      $('.controlArea .cards .card3').remove();
+      $('.controlArea .cards .card4').remove();
+      for (i = 0; i < data.cards.length; i++) {
+        $card = $('<span/>').text(data.cards[i]);
+        if (data.cards[i].search('♥')  >= 0) {
+            $card.addClass('card1');
+        } else if (data.cards[i].search('♦') >= 0) {
+            $card.addClass('card2');
+        } else if (data.cards[i].search('♠') >= 0) {
+            $card.addClass('card3');
+        } else if (data.cards[i].search('♣') >= 0) {
+            $card.addClass('card4');
+        }
+        $('.controlArea .cards').append($card);
+      }
+    }
+
+
   });
 
   socket.on('table', function (table) {
@@ -190,7 +234,6 @@ $(function() {
     $('.tableArea .chips').text(table.chips);
     $('.tableArea .bet').text(table.bet);
     $('.tableArea .pot').text(table.pot);
-    $('.tableArea .actions').text(table.actions);
     $('.playersArea .player').removeClass('turn');
     $('.controlArea input[type="button"]').prop('disabled', true);
     if (player_index == table.turn) {
@@ -198,12 +241,36 @@ $(function() {
         $('.controlArea input[value="' + table.actions[i] + '"]').prop('disabled', false);
       }
     }
+
+    if (table.cards && table.cards.length) {
+      $('.tableArea .cards .card1').remove();
+      $('.tableArea .cards .card2').remove();
+      $('.tableArea .cards .card3').remove();
+      $('.tableArea .cards .card4').remove();
+      for (i = 0; i < table.cards.length; i++) {
+        $card = $('<span/>').text(table.cards[i]);
+        if (table.cards[i].search('♥')  >= 0) {
+            $card.addClass('card1');
+        } else if (table.cards[i].search('♦') >= 0) {
+            $card.addClass('card2');
+        } else if (table.cards[i].search('♠') >= 0) {
+            $card.addClass('card3');
+        } else if (table.cards[i].search('♣') >= 0) {
+            $card.addClass('card4');
+        }
+        $('.tableArea .cards').append($card);
+      }
+    }
+
     if (table.players && table.players.length) {
       for (i = 0; i < table.players.length; i++) {
+        player = table.players[i];
         if (i == table.turn) {
           $('.playersArea .player').eq(i).addClass('turn');
+          $rangeValue.text(table.min);
+          $rangeControl.prop('min', table.min);
+          $rangeControl.prop('max', player.chips);
         }
-        player = table.players[i];
         $('.playersArea .player').eq(i).find('.index').text(player.player);
         $('.playersArea .player').eq(i).find('.name').text(player.name);
         $('.playersArea .player').eq(i).find('.chips').text(player.chips);
@@ -216,31 +283,34 @@ $(function() {
         }
       }
     }
+  });
 
-    $betButton.off().click(function() {
-      socket.emit('message', 'bet ' + $rangeControl.prop('value'));
-    });
+  $betButton.off().click(function() {
+    socket.emit('message', 'bet ' + $rangeControl.prop('value'));
+  });
 
-    $raiseButton.off().click(function() {
-      socket.emit('message', 'raise ' + $rangeControl.prop('value'));
-    });
+  $raiseButton.off().click(function() {
+    socket.emit('message', 'raise ' + $rangeControl.prop('value'));
+  });
 
-    $checkButton.off().click(function() {
-      socket.emit('message', 'check');
-    });
+  $checkButton.off().click(function() {
+    socket.emit('message', 'check');
+  });
 
-    $foldButton.off().click(function() {
-      socket.emit('message', 'fold');
-    });
+  $foldButton.off().click(function() {
+    socket.emit('message', 'fold');
+  });
 
-    $callButton.off().click(function() {
-      socket.emit('message', 'call');
-      console.log('call');
-    });
+  $callButton.off().click(function() {
+    socket.emit('message', 'call');
+    console.log('call');
+  });
 
-    $allInButton.off().click(function() {
-      socket.emit('message', 'all in');
-    });
+  $allInButton.off().click(function() {
+    socket.emit('message', 'all in');
+  });
 
+  $rangeControl.on('change', function() {
+    $rangeValue.text($rangeControl.val());
   });
 });

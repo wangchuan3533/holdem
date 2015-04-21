@@ -56,6 +56,28 @@ void send_msgv_raw(user_t *user, const char *fmt, va_list ap)
     evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
 }
 
+void broadcast_global_websocket(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    broadcast_globalv_websocket(fmt, ap);
+    va_end(ap);
+}
+
+void broadcast_globalv_websocket(const char *fmt, va_list ap)
+{
+    user_t *tmp, *user;
+    va_list cp;
+
+    HASH_ITER(hh, g_users, user, tmp) {
+        if (user->type == USER_TYPE_WEBSOCKET) {
+            va_copy(cp, ap);
+            send_msgv(user, fmt, cp);
+        }
+    }
+}
+
 void broadcast_global(const char *fmt, ...)
 {
     va_list ap;

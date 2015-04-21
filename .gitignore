@@ -1,6 +1,7 @@
 *.o
 server
 node_modules
+nohup.out
 tags
 *.tab.h
 *.tab.c

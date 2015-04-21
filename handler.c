@@ -6,6 +6,41 @@
 #include "table.h"
 #include "sha1.h"
 
+char g_tables_json_cache[1024];
+char g_players_json_cache[1024];
+
+int tables_to_json(char *buffer, int size)
+{
+    int offset = 0;
+    table_t *table, *tmp;
+
+    offset += snprintf(buffer + offset, size - offset, "{\"type\":\"tables\",\"data\":{\"tables\":[");
+    HASH_ITER(hh, g_tables, table, tmp) {
+        offset += snprintf(buffer + offset, size - offset, "\"%s\",", table->name);
+    }
+    if (buffer[offset - 1] == ',') {
+        offset--;
+    }
+    offset += snprintf(buffer + offset, size - offset, "]}}");
+    return offset;
+}
+
+int players_to_json(char *buffer, int size)
+{
+    int offset = 0;
+    user_t *user, *tmp;
+
+    offset += snprintf(buffer + offset, size - offset, "{\"type\":\"users\",\"data\":{\"users\":[");
+    HASH_ITER(hh, g_users, user, tmp) {
+        offset += snprintf(buffer + offset, size - offset, "\"%s\",", user->name);
+    }
+    if (buffer[offset - 1] == ',') {
+        offset--;
+    }
+    offset += snprintf(buffer + offset, size - offset, "]}}");
+    return offset;
+}
+
 int reg(const char *name, const char *password)
 {
     user_t *user = g_current_user;
@@ -31,7 +66,10 @@ int reg(const char *name, const char *password)
     send_msg(user, "welcome to texas holdem, %s, your money left is %d", user->name, user->money);
     if (user->type == USER_TYPE_WEBSOCKET) {
         send_msg(user, "{\"type\":\"login\",\"data\":{\"message\":\"login success\"}}");
+        send_msg(user, g_tables_json_cache);
     }
+    players_to_json(g_players_json_cache, sizeof(g_players_json_cache));
+    broadcast_global_websocket(g_players_json_cache);
     return 0;
 }
 
@@ -63,7 +101,10 @@ int login(const char *name, const char *password)
     send_msg(user, "welcome to texas holdem, %s, your money left is %d", user->name, user->money);
     if (user->type == USER_TYPE_WEBSOCKET) {
         send_msg(user, "{\"type\":\"login\",\"data\":{\"message\":\"login success\"}}");
+        send_msg(user, g_tables_json_cache);
     }
+    players_to_json(g_players_json_cache, sizeof(g_players_json_cache));
+    broadcast_global_websocket(g_players_json_cache);
     return 0;
 }
 
@@ -87,6 +128,8 @@ int logout()
 
     send_msg(user, "bye %s", user->name);
     user->state &= ~USER_STATE_LOGIN;
+    players_to_json(g_players_json_cache, sizeof(g_players_json_cache));
+    broadcast_global_websocket(g_players_json_cache);
     return 0;
 }
 
@@ -118,9 +161,12 @@ int create_table(const char *name)
         send_msg(user, "join table %s failed", table->name);
         return -1;
     }
+    broadcast_global("%s created table %s", user->name, name);
     if (user->type == USER_TYPE_WEBSOCKET) {
         send_msg(user, "{\"type\":\"player\",\"data\":{\"player\":%d}}", user->index);
     }
+    tables_to_json(g_tables_json_cache, sizeof(g_tables_json_cache));
+    broadcast_global_websocket(g_tables_json_cache);
     return 0;
 }
 

@@ -56,6 +56,7 @@ void table_prepare(table_t *table)
     table->num_all_in    = 0;
     table->num_folded    = 0;
     table->pot_count     = 0;
+    table->turn          = -1;
     init_deck(&(table->deck));
     table_clear_timeout(table);
     memset(table->side_pots, 0, sizeof(table->side_pots));
@@ -106,6 +107,11 @@ void table_pre_flop(table_t *table)
                 send_msg(table->players[i]->user, "[PRE_FLOP] %s, %s",
                         card_to_string(table->players[i]->hand_cards[0]),
                         card_to_string(table->players[i]->hand_cards[1]));
+                if (table->players[i]->user->type == USER_TYPE_WEBSOCKET) {
+                    send_msg(table->players[i]->user, "{\"type\":\"cards\",\"data\":{\"cards\":[\"%s\",\"%s\"]}}",
+                        card_to_string(table->players[i]->hand_cards[0]),
+                        card_to_string(table->players[i]->hand_cards[1]));
+                }
         }
     }
 
@@ -248,6 +254,9 @@ void table_finish(table_t *table)
                 }
                 broadcast(table, "player %d wins %d", i, chips);
                 table->players[i]->chips += chips;
+                table_prepare(table);
+                table_to_json(table, table->json_cache, sizeof(table->json_cache));
+                report_table(table);
                 return;
             }
         }
@@ -303,6 +312,8 @@ void table_finish(table_t *table)
         }
     }
     table_prepare(table);
+    table_to_json(table, table->json_cache, sizeof(table->json_cache));
+    report_table(table);
 }
 
 inline void table_init_timeout(table_t *table)
@@ -762,8 +773,8 @@ int table_to_json(table_t *table, char *buffer, int size)
 {
     int i, offset = 0;
 
-    offset += snprintf(buffer + offset, size - offset, "{\"type\":\"table\",\"data\":{\"name\":\"%s\",\"turn\":%d,\"bet\":%d,\"pot\":%d,\"actions\":",
-            table->name, table->turn, table->bet, table->pot);
+    offset += snprintf(buffer + offset, size - offset, "{\"type\":\"table\",\"data\":{\"name\":\"%s\",\"turn\":%d,\"bet\":%d,\"min\":%d,\"pot\":%d,\"actions\":",
+            table->name, table->turn, table->bet, table->minimum_raise, table->pot);
     offset += action_to_json(table->action_mask, buffer + offset, size - offset);
 
     if (table->num_cards > 0) {

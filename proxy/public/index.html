@@ -9,16 +9,19 @@
   <ul class="pages">
     <li class="main page">
       <div class="hallArea">
+        <p>Available Tables: </p><div class="tables"></div>
+        <p>Online Users:     </p><div class="users"></div>
       </div>
       <div class="tableArea">
-        <span class="name"></span>
-        <span class="chips"></span>
-        <span class="bet"></span>
-        <span class="pot"></span>
-        <span class="turn"></span>
-        <span class="actions"></span>
+        <p>Table: <span class="name"></span></p>
+        <p>Chips: <span class="chips"></span></p>
+        <p>Bet: <span class="bet"></span></p>
+        <p>Pot: <span class="pot"></span></p>
+        <p>Turn: <span class="turn"></span></p>
+        <p>Cards: <span class="cards"></span></p>
       </div>
       <div class="playersArea">
+      <p>Players</p>
         <div class="player">
           <span class="index"></span>
           <span class="name"></span>
@@ -101,6 +104,8 @@
         <input type="button" value="fold" />
         <input type="button" value="all_in" />
         <input type="range" min="0" max="1000" />
+        <span class="rangeValue">0</span>
+        <span class="cards"></span>
       </div>
       <div class="chatArea">
         <ul class="messages"></ul>
