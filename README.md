@@ -91,3 +91,4 @@ http://121.42.166.108:8899/
 - table start bug fix
 - sendmsg() bug
 - timeout bug
+- bin log

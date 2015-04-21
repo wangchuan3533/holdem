@@ -30,6 +30,7 @@ $(function() {
   var connected = false;
   var typing = false;
   var lastTypingTime;
+  var player_index = -1;
 
   var socket = io();
 
@@ -40,10 +41,6 @@ $(function() {
 
     // If the username is valid
     if (method && username && password) {
-      $loginPage.fadeOut();
-      $chatPage.show();
-      $loginPage.off('click');
-
       // Tell the server your username
       socket.emit('join', {'method': method, 'username': username, 'password': password});
     }
@@ -55,7 +52,7 @@ $(function() {
     // Prevent markup from being injected into the message
     message = cleanInput(message);
     // if there is a non-empty message and a socket connection
-    if (message/* && connected*/) {
+    if (message && connected) {
       $inputMessage.val('');
       addChatMessage({
         username: username,
@@ -164,12 +161,21 @@ $(function() {
   });
 
   // Socket events
+
   // Whenever the server emits 'login', log the login message
   socket.on('login', function (data) {
+    $loginPage.fadeOut();
+    $chatPage.show();
+    $loginPage.off('click');
     connected = true;
     log(data.message, {
       prepend: true
     });
+  });
+
+  socket.on('player', function (player) {
+    player_index = player.player;
+    $('.controlArea .index').text(player_index);
   });
 
   // Whenever the server emits 'new message', update the chat body
@@ -178,24 +184,27 @@ $(function() {
     addChatMessage(data);
   });
 
-  socket.on('table', function (data) {
-    console.log(data);
-    $('.tableArea .name').text(data.name);
-    $('.tableArea .chips').text(data.chips);
-    $('.tableArea .bet').text(data.bet);
-    $('.tableArea .pot').text(data.pot);
-    $('.tableArea .actions').text(data.actions);
+  socket.on('table', function (table) {
+    console.log(table);
+    $('.tableArea .name').text(table.name);
+    $('.tableArea .chips').text(table.chips);
+    $('.tableArea .bet').text(table.bet);
+    $('.tableArea .pot').text(table.pot);
+    $('.tableArea .actions').text(table.actions);
     $('.playersArea .player').removeClass('turn');
     $('.controlArea input[type="button"]').prop('disabled', true);
-    for (i = 0; i < data.actions.length; i++) {
-      $('.controlArea input[value="' + data.actions[i] + '"]').prop('disabled', false);
+    if (player_index == table.turn) {
+      for (i = 0; i < table.actions.length; i++) {
+        $('.controlArea input[value="' + table.actions[i] + '"]').prop('disabled', false);
+      }
     }
-    if (data.players && data.players.length) {
-      for (i = 0; i < data.players.length; i++) {
-        if (i == data.turn) {
+    if (table.players && table.players.length) {
+      for (i = 0; i < table.players.length; i++) {
+        if (i == table.turn) {
           $('.playersArea .player').eq(i).addClass('turn');
         }
-        player = data.players[i];
+        player = table.players[i];
+        $('.playersArea .player').eq(i).find('.index').text(player.player);
         $('.playersArea .player').eq(i).find('.name').text(player.name);
         $('.playersArea .player').eq(i).find('.chips').text(player.chips);
         $('.playersArea .player').eq(i).find('.bet').text(player.bet);
@@ -208,23 +217,30 @@ $(function() {
       }
     }
 
-    $betButton.click(function() {
+    $betButton.off().click(function() {
       socket.emit('message', 'bet ' + $rangeControl.prop('value'));
     });
-    $raiseButton.click(function() {
+
+    $raiseButton.off().click(function() {
       socket.emit('message', 'raise ' + $rangeControl.prop('value'));
     });
-    $checkButton.click(function() {
+
+    $checkButton.off().click(function() {
       socket.emit('message', 'check');
     });
-    $foldButton.click(function() {
+
+    $foldButton.off().click(function() {
       socket.emit('message', 'fold');
     });
-    $callButton.click(function() {
+
+    $callButton.off().click(function() {
       socket.emit('message', 'call');
+      console.log('call');
     });
-    $allInButton.click(function() {
+
+    $allInButton.off().click(function() {
       socket.emit('message', 'all in');
     });
+
   });
 });

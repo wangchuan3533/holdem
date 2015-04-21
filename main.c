@@ -16,6 +16,8 @@ int handle(user_t *user, const char *line)
 
     g_current_user = user;
     snprintf(line_buffer, sizeof(line_buffer), "%s\n", line);
+    // bin log
+    printf("%s: %s\n", user->name, line);
     yy_scan_string(line_buffer);
     yyparse();
     //yylex_destroy();

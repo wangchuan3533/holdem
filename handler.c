@@ -29,6 +29,9 @@ int reg(const char *name, const char *password)
     HASH_ADD(hh, g_users, name, strlen(user->name), user);
     user->state |= USER_STATE_LOGIN;
     send_msg(user, "welcome to texas holdem, %s, your money left is %d", user->name, user->money);
+    if (user->type == USER_TYPE_WEBSOCKET) {
+        send_msg(user, "{\"type\":\"login\",\"data\":{\"message\":\"login success\"}}");
+    }
     return 0;
 }
 
@@ -58,6 +61,9 @@ int login(const char *name, const char *password)
     HASH_ADD(hh, g_users, name, strlen(user->name), user);
     user->state |= USER_STATE_LOGIN;
     send_msg(user, "welcome to texas holdem, %s, your money left is %d", user->name, user->money);
+    if (user->type == USER_TYPE_WEBSOCKET) {
+        send_msg(user, "{\"type\":\"login\",\"data\":{\"message\":\"login success\"}}");
+    }
     return 0;
 }
 
@@ -112,7 +118,9 @@ int create_table(const char *name)
         send_msg(user, "join table %s failed", table->name);
         return -1;
     }
-
+    if (user->type == USER_TYPE_WEBSOCKET) {
+        send_msg(user, "{\"type\":\"player\",\"data\":{\"player\":%d}}", user->index);
+    }
     return 0;
 }
 
@@ -134,7 +142,9 @@ int join_table(const char *name)
         send_msg(user, "join table %s failed", table->name);
         return -1;
     }
-
+    if (user->type == USER_TYPE_WEBSOCKET) {
+        send_msg(user, "{\"type\":\"player\",\"data\":{\"player\":%d}}", user->index);
+    }
     return 0;
 }
 
@@ -148,6 +158,9 @@ int quit_table()
 
     assert(player_quit(user) == 0);
     send_msg(user, "quit table %s success", table->name);
+    if (user->type == USER_TYPE_WEBSOCKET) {
+        send_msg(user, "{\"type\":\"player\",\"data\":{\"player\":%d}}", -1);
+    }
     return 0;
 }
 

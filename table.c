@@ -536,7 +536,6 @@ int handle_action(table_t *table, int index, action_t action, int value)
     player_t *player_next;
     int next;
 
-    assert(player->user);
     // check action
     if (!(action & table->action_mask)) {
         send_msg(player->user, "invalid action");

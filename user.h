@@ -74,10 +74,15 @@ extern int g_num_user;
 user_t *user_create();
 void user_destroy(user_t *user);
 void send_msg(user_t *user, const char *fmt, ...);
-void send_msgv(user_t *user, const char *fmt, va_list ap);
 void send_msg_raw(user_t *user, const char *fmt, ...);
+void send_msgv(user_t *user, const char *fmt, va_list ap);
 void send_msgv_raw(user_t *user, const char *fmt, va_list ap);
+void broadcast_global(const char *fmt, ...);
+void broadcast_global_raw(const char *fmt, ...);
+void broadcast_globalv(const char *fmt, va_list ap);
+void broadcast_globalv_raw(const char *fmt, va_list ap);
 int user_save(user_t *user);
 int user_load(const char *name, user_t *user);
 int user_add_money(user_t *user, int money);
+
 #endif

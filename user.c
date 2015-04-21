@@ -56,6 +56,46 @@ void send_msgv_raw(user_t *user, const char *fmt, va_list ap)
     evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
 }
 
+void broadcast_global(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    broadcast_globalv(fmt, ap);
+    va_end(ap);
+}
+
+void broadcast_globalv(const char *fmt, va_list ap)
+{
+    user_t *tmp, *user;
+    va_list cp;
+
+    HASH_ITER(hh, g_users, user, tmp) {
+        va_copy(cp, ap);
+        send_msgv(user, fmt, cp);
+    }
+}
+
+void broadcast_global_raw(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    broadcast_globalv_raw(fmt, ap);
+    va_end(ap);
+}
+
+void broadcast_globalv_raw(const char *fmt, va_list ap)
+{
+    user_t *tmp, *user;
+    va_list cp;
+
+    HASH_ITER(hh, g_users, user, tmp) {
+        va_copy(cp, ap);
+        send_msgv_raw(user, fmt, cp);
+    }
+}
+
 int user_save(user_t *user)
 {
     char buffer[512];
