@@ -5,6 +5,7 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 8899;
 var net = require('net');
+var md5 = require('MD5');
 
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
@@ -23,7 +24,7 @@ io.on('connection', function (socket) {
   // when the client emits 'join', this listens and executes
   socket.on('join', function (user) {
     username = user.username;
-    password = user.password;
+    password = md5(user.password);
     method   = user.method;
 
     peer = net.connect({port:10000}, function() {

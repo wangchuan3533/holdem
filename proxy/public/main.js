@@ -25,6 +25,7 @@ $(function() {
   var $allInButton = $('.controlArea input[value="all_in"]');
   var $rangeControl = $('.controlArea input[type="range"]');
   var $rangeValue = $('.controlArea .rangeValue');
+  var $noticeDiv = $('.login.page .notice');
 
   // Prompt for setting a username
   var username;
@@ -181,6 +182,9 @@ $(function() {
 
   // Whenever the server emits 'new message', update the chat body
   socket.on('message', function (data) {
+    if (!connected) {
+      $noticeDiv.text(data.message);
+    }
     console.log(data);
     log(data.message, {
     });

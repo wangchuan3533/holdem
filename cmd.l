@@ -37,7 +37,7 @@
 \n                          { return EOL;                                                                   }
 [0-9]+                      { yylval.intval = atoi(yytext); return NUMBER;                                  }
 0x[a-f0-9]+                 { yylval.intval = strtol(yytext, NULL, 16); return NUMBER;                      }
-[a-zA-Z][a-zA-Z0-9]*        { yylval.strval = strdup(yytext); return IDENTIFIER;                            }
+[a-zA-Z0-9]+                { yylval.strval = strdup(yytext); return IDENTIFIER;                            }
 '[^']*'                     { yylval.strval = strndup(yytext + 1, strlen(yytext) - 2); return STRING;       }
 .
 %%
