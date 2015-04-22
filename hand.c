@@ -174,7 +174,7 @@ int hand_to_string(card_t *cards, hand_rank_t rank, char *buffer, int size)
 
     for (i = 0; i < HAND_NUM; i++) {
         if (rank.mask & (1u << i)) {
-            offset += snprintf(buffer + offset, size - offset, "%s, ", card_to_string(cards[i]));
+            offset += snprintf(buffer + offset, size - offset, "%s,", card_to_string(cards[i]));
         }
     }
     buffer[--offset] = '\0';

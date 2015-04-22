@@ -71,8 +71,8 @@ void table_prepare(table_t *table)
         table->players[i]->pot_offset = 0;
 
         if (table->players[i]->user) {
-            if (table->players[i]->chips < table->minimum_bet && table->players[i]->user->money > 1000 ) {
-                player_buy_chips(table->players[i], 1000);
+            if (table->players[i]->chips < table->minimum_bet && table->players[i]->user->money > 10000 ) {
+                player_buy_chips(table->players[i], 10000);
             }
             table->players[i]->state = PLAYER_STATE_WAITING;
             table->num_players++;
@@ -161,6 +161,8 @@ void table_flop(table_t *table)
             card_to_string(table->community_cards[2]));
     table->state = TABLE_STATE_FLOP;
     table->bet  = 0;
+    table->minimum_bet = 100;
+    table->minimum_raise = 100;
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table, 0);
@@ -187,6 +189,8 @@ void table_turn(table_t *table)
             card_to_string(table->community_cards[3]));
     table->state = TABLE_STATE_TURN;
     table->bet  = 0;
+    table->minimum_bet = 100;
+    table->minimum_raise = 100;
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table, 0);
@@ -214,6 +218,8 @@ void table_river(table_t *table)
             card_to_string(table->community_cards[4]));
     table->state = TABLE_STATE_RIVER;
     table->bet  = 0;
+    table->minimum_bet = 100;
+    table->minimum_raise = 100;
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table, 0);
@@ -254,9 +260,9 @@ void table_finish(table_t *table)
                 }
                 broadcast(table, "player %d wins %d", i, chips);
                 table->players[i]->chips += chips;
-                table_prepare(table);
                 table_to_json(table, table->json_cache, sizeof(table->json_cache));
                 report_table(table);
+                table_prepare(table);
                 return;
             }
         }
@@ -311,9 +317,9 @@ void table_finish(table_t *table)
             broadcast(table, "player %d wins %d", possible_winners[k] - table->players[0], chips);
         }
     }
-    table_prepare(table);
     table_to_json(table, table->json_cache, sizeof(table->json_cache));
     report_table(table);
+    table_prepare(table);
 }
 
 inline void table_init_timeout(table_t *table)
@@ -394,8 +400,8 @@ int player_join(table_t *table, user_t *user)
             table->num_players++;
             user->index = i;
             user->state |= USER_STATE_TABLE;
-            if (player->chips < table->minimum_bet && player->user->money > 1000 ) {
-                player_buy_chips(player, 1000);
+            if (player->chips < table->minimum_bet && player->user->money > 10000 ) {
+                player_buy_chips(player, 10000);
             }
             table_to_json(table, table->json_cache, sizeof(table->json_cache));
             broadcast(table, "player %d %s joined chips %d", i, user->name, player->chips);
@@ -773,8 +779,8 @@ int table_to_json(table_t *table, char *buffer, int size)
 {
     int i, offset = 0;
 
-    offset += snprintf(buffer + offset, size - offset, "{\"type\":\"table\",\"data\":{\"name\":\"%s\",\"turn\":%d,\"bet\":%d,\"min\":%d,\"pot\":%d,\"actions\":",
-            table->name, table->turn, table->bet, table->minimum_raise, table->pot);
+    offset += snprintf(buffer + offset, size - offset, "{\"type\":\"table\",\"data\":{\"name\":\"%s\",\"turn\":%d,\"state\":%d,\"bet\":%d,\"min\":%d,\"pot\":%d,\"actions\":",
+            table->name, table->turn, table->state, table->bet, table->minimum_raise, table->pot);
     offset += action_to_json(table->action_mask, buffer + offset, size - offset);
 
     if (table->num_cards > 0) {

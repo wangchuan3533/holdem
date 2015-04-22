@@ -150,8 +150,16 @@ ul {
   border: 2px dashed red;
 }
 
-.hallArea, .tableArea, .playersArea, .controlArea, .chatArea {
-  height: 150px;
+.hallArea {
+  height: 15%;
+}
+
+.tableArea,.controlArea {
+  height: 10%;
+}
+
+.chatArea, .playersArea {
+  height: 35%;
 }
 
 .turn {
