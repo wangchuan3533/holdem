@@ -238,8 +238,15 @@ $(function() {
     $('.tableArea .bet').text(table.bet);
     $('.tableArea .pot').text(table.pot);
     $('.playersArea .player').removeClass('turn');
+    if (table.turn >= 0) {
+      $('.playersArea .player').eq(table.turn).addClass('turn');
+    }
     $('.controlArea input[type="button"]').prop('disabled', true);
     if (player_index == table.turn) {
+      $rangeControl.prop('min', table.min);
+      $rangeControl.prop('value', table.min);
+      $rangeControl.prop('max', table.players[player_index].chips);
+      $rangeValue.text(table.min);
       for (i = 0; i < table.actions.length; i++) {
         $('.controlArea input[value="' + table.actions[i] + '"]').prop('disabled', false);
       }
@@ -265,12 +272,6 @@ $(function() {
     if (table.players && table.players.length) {
       for (i = 0; i < table.players.length; i++) {
         player = table.players[i];
-        if (i == table.turn) {
-          $('.playersArea .player').eq(i).addClass('turn');
-          $rangeValue.text(table.min);
-          $rangeControl.prop('min', table.min);
-          $rangeControl.prop('max', player.chips);
-        }
         $('.playersArea .player').eq(i).find('.index').text('Index: ' + player.player);
         $('.playersArea .player').eq(i).find('.name').text('Name: ' + player.name);
         $('.playersArea .player').eq(i).find('.chips').text('Chips: ' + player.chips);
