@@ -26,6 +26,9 @@ $(function() {
   var $rangeControl = $('.controlArea input[type="range"]');
   var $rangeValue = $('.controlArea .rangeValue');
   var $noticeDiv = $('.login.page .notice');
+  var $players = $('.playersArea .player');
+  var $playerCards = $('.controlArea .cards');
+  var $communityCards = $('.tableArea .cards');
 
   // Prompt for setting a username
   var username;
@@ -210,10 +213,7 @@ $(function() {
 
   socket.on('cards', function (data) {
     if (data.cards && data.cards.length) {
-      $('.controlArea .cards .card1').remove();
-      $('.controlArea .cards .card2').remove();
-      $('.controlArea .cards .card3').remove();
-      $('.controlArea .cards .card4').remove();
+      $playerCards.empty();
       for (i = 0; i < data.cards.length; i++) {
         $card = $('<span/>').text(data.cards[i]);
         if (data.cards[i].search('♥')  >= 0) {
@@ -225,11 +225,9 @@ $(function() {
         } else if (data.cards[i].search('♣') >= 0) {
             $card.addClass('card4');
         }
-        $('.controlArea .cards').append($card);
+        $playerCards.append($card);
       }
     }
-
-
   });
 
   socket.on('table', function (table) {
@@ -252,7 +250,7 @@ $(function() {
       }
     }
 
-    $('.tableArea .cards span').remove();
+    $communityCards.empty();
     if (table.cards && table.cards.length) {
       for (i = 0; i < table.cards.length; i++) {
         $card = $('<span/>').text(table.cards[i]);
@@ -265,22 +263,22 @@ $(function() {
         } else if (table.cards[i].search('♣') >= 0) {
             $card.addClass('card4');
         }
-        $('.tableArea .cards').append($card);
+        $communityCards.append($card);
       }
     }
 
     if (table.players && table.players.length) {
       for (i = 0; i < table.players.length; i++) {
         player = table.players[i];
-        $('.playersArea .player').eq(i).find('.index').text('Index: ' + player.player);
-        $('.playersArea .player').eq(i).find('.name').text('Name: ' + player.name);
-        $('.playersArea .player').eq(i).find('.chips').text('Chips: ' + player.chips);
-        $('.playersArea .player').eq(i).find('.bet').text('Bet: ' + player.bet);
+//        $('.playersArea .player').eq(i).find('.index').text('Index: ' + player.player);
+        $players.eq(i).find('.name').text(player.name);
+        $players.eq(i).find('.chips').text(player.chips);
+        $players.eq(i).find('.bet').text(player.bet);
         if (player.cards) {
-          $('.playersArea .player').eq(i).find('.cards').text('Cards' + player.cards);
+          $players.eq(i).find('.cards').text('Cards' + player.cards);
         }
         if (player.hand) {
-          $('.playersArea .player').eq(i).find('.hand').text('Hand: ' + player.hand);
+          $players.eq(i).find('.hand').text('Hand: ' + player.hand);
         }
       }
     }

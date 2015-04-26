@@ -57,6 +57,7 @@ void table_prepare(table_t *table)
     table->num_folded    = 0;
     table->pot_count     = 0;
     table->turn          = -1;
+    table->action_mask   = 0;
     init_deck(&(table->deck));
     table_clear_timeout(table);
     memset(table->side_pots, 0, sizeof(table->side_pots));

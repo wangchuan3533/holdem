@@ -46,7 +46,6 @@ io.on('connection', function (socket) {
           } catch (err) {
             console.log(lines[i]);
             socket.emit('message', {
-                'username' : '',
                 'message'  : lines[i]
             });
           }

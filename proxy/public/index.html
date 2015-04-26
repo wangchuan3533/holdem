@@ -1,130 +1,73 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" ng-app="texasApp">
 <head>
   <meta charset="UTF-8">
   <title>Texas Hold'em Poker Game</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/bower_components/angular/angular.js"></script>
+  <script src="/bower_components/angular-socket-io/socket.js"></script>
+  <script src="texas.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body ng-controller="TableController as table">
   <ul class="pages">
-    <li class="main page">
+    <li class="main page" ng-show="connected">
       <div class="hallArea">
-        <span>Available Tables: </span><div class="tables"></div>
-        <span>Online Users:     </span><div class="users"></div>
+        <div>
+          <span>Available Tables: </span>
+          <input type="button" ng-repeat="table_name in tables" value="{{table_name}}" ng-click="table.join(table_name)" />
+        </div>
+        <div>
+          <span>Online Users: </span>
+          <span ng-repeat="user in users">{{user + ' '}}</span>
+        </div>
       </div>
       <div class="tableArea">
-        Table: <span class="name"></span>
-        Bet: <span class="bet"></span>
-        Pot: <span class="pot"></span>
-        Cards: <span class="cards"></span>
-      </div>
-      <div class="playersArea">
-        <span>Players</span>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
-        </div>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
-        </div>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
-        </div>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
-        </div>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
-        </div>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
-        </div>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
-        </div>
-        <div class="player">
-          <span class="index"></span>
-          <span class="name"></span>
-          <span class="chips"></span>
-          <span class="folded"></span>
-          <span class="cards"></span>
-          <span class="hand"></span>
-          <span class="bet"></span>
+        Table: <span>{{name}}</span>
+        Bet: <span>{{bet}}</span>
+        Pot: <span>{{pot}}</span>
+        Cards: <span ng-repeat="card in community_cards">{{card}}</span>
+        <div class="playersArea">
+          <div class="player" ng-repeat="player in players">
+            <span>{{player.index}}</span>
+            <span>{{player.name}}</span>
+            <span>{{player.chips}}</span>
+            <span>{{player.folded}}</span>
+            <span>{{player.cards}}</span>
+            <span>{{player.hand}}</span>
+            <span>{{player.bet}}</span>
+          </div>
         </div>
       </div>
       <div class="controlArea">
-        <span class="index"></span>
-        <input type="button" value="bet" />
-        <input type="button" value="check" />
-        <input type="button" value="raise" />
-        <input type="button" value="call" />
-        <input type="button" value="fold" />
-        <input type="button" value="all_in" />
-        <input type="range" min="0" max="1000" />
-        <span class="rangeValue">0</span>
-        <span class="cards"></span>
+        <span class="index">{{player_index}}</span>
+        <input type="button" ng-repeat="action in actions" value="{{action}}" ng-click="table.game_action(action, range.value)" />
+        <div ng-show="range.min > 0 && range.max > 0 && range.max > range.min">
+          <input type="range" min="{{range.min}}" max="{{range.max}}" ng-model="range.value"/>
+          <span>{{range.value}}</span>
+          <span ng-repeat="card in cards">{{card}}</span>
+        </div>
       </div>
       <div class="chatArea">
-        <ul class="messages"></ul>
+        <input class="inputMessage" placeholder="Type here..." ng-model="inputMessage" ng-keydown="table.keydown($event)" />
+        <ul class="messages">
+          <li class="log" ng-repeat="message in messages">
+            <span class="messageBody">{{message}}</span>
+          </li>
+        </ul>
       </div>
-      <input class="inputMessage" placeholder="Type here..."/>
     </li>
-    <li class="login page">
+    <li class="login page" ng-show="!connected">
       <div class="form">
-        <div class="notice"></div>
-        <div class="item"><div class="label">User Name</div><input class="usernameInput" type="text" /></div>
-        <div class="item"><div class="label">Password</div><input class="userpassInput" type="password" /></div>
+        <div class="notice">{{notice}}</div>
+        <div class="item"><div class="label">User Name</div><input class="usernameInput" type="text" ng-model="username"/></div>
+        <div class="item"><div class="label">Password</div><input class="userpassInput" type="password" ng-model="password"/></div>
         <div class="item">
-          <input class="loginButton" type="button" value="Login" />
-          <input class="registerButton" type="button" value="Register" />
+          <input class="loginButton" type="button" value="Login" ng-click="table.login('login')" />
+          <input class="registerButton" type="button" value="Register" ng-click="table.login('reg')" />
         </div>
       </div>
     </li>
   </ul>
-
-  <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/main.js"></script>
 </body>
 </html>

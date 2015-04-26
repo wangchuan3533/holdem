@@ -1,6 +1,7 @@
 *.o
 server
 node_modules
+bower_components
 nohup.out
 tags
 *.tab.h
