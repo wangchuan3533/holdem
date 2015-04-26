@@ -15,7 +15,7 @@
       <div class="hallArea">
         <div>
           <span>Available Tables: </span>
-          <input type="button" ng-repeat="table_name in tables" value="{{table_name}}" ng-click="table.join(table_name)" />
+          <input type="button" ng-repeat="table_name in tables" value="{{table_name}}" ng-click="join(table_name)" />
         </div>
         <div>
           <span>Online Users: </span>
@@ -41,7 +41,7 @@
       </div>
       <div class="controlArea">
         <span class="index">{{player_index}}</span>
-        <input type="button" ng-repeat="action in actions" value="{{action}}" ng-click="table.game_action(action, range.value)" />
+        <input type="button" ng-repeat="action in actions" value="{{action}}" ng-click="game_action(action, range.value)" />
         <div ng-show="range.min > 0 && range.max > 0 && range.max > range.min">
           <input type="range" min="{{range.min}}" max="{{range.max}}" ng-model="range.value"/>
           <span>{{range.value}}</span>
@@ -49,7 +49,7 @@
         </div>
       </div>
       <div class="chatArea">
-        <input class="inputMessage" placeholder="Type here..." ng-model="inputMessage" ng-keydown="table.keydown($event)" />
+        <input class="inputMessage" placeholder="Type here..." ng-model="inputMessage" ng-keydown="keydown($event)" />
         <ul class="messages">
           <li class="log" ng-repeat="message in messages">
             <span class="messageBody">{{message}}</span>
@@ -63,8 +63,8 @@
         <div class="item"><div class="label">User Name</div><input class="usernameInput" type="text" ng-model="username"/></div>
         <div class="item"><div class="label">Password</div><input class="userpassInput" type="password" ng-model="password"/></div>
         <div class="item">
-          <input class="loginButton" type="button" value="Login" ng-click="table.login('login')" />
-          <input class="registerButton" type="button" value="Register" ng-click="table.login('reg')" />
+          <input class="loginButton" type="button" value="Login" ng-click="login('login')" />
+          <input class="registerButton" type="button" value="Register" ng-click="login('reg')" />
         </div>
       </div>
     </li>

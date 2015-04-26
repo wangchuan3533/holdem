@@ -22,7 +22,7 @@ app.controller('TableController', function($scope, socket) {
   $scope.players = [];
   $scope.action = {};
 
-  this.login = function(method) {
+  $scope.login = function(method) {
     // If the username is valid
     if (method && $scope.username && $scope.password) {
       // Tell the server your username
@@ -30,7 +30,7 @@ app.controller('TableController', function($scope, socket) {
     }
   };
 
-  this.keydown = function(event) {
+  $scope.keydown = function(event) {
     // When the client hits ENTER on their keyboard
     if (event.which === 13) {
       if ($scope.connected && $scope.inputMessage) {
@@ -40,12 +40,12 @@ app.controller('TableController', function($scope, socket) {
     }
   };
 
-  this.join = function(name) {
+  $scope.join = function(name) {
     console.log(name);
     socket.emit('message', 'join ' + name);
   };
 
-  this.game_action = function(action, value) {
+  $scope.game_action = function(action, value) {
     switch (action) {
     case 'bet':
     case 'raise':
