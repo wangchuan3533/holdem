@@ -16,6 +16,8 @@
         <div>
           <span>Available Tables: </span>
           <input type="button" ng-repeat="table_name in tables" value="{{table_name}}" ng-click="join(table_name)" />
+          New Table:<input type="text" ng-model="new_table" /> <input type="button" value="Create" ng-click="create_table(new_table)" />
+          <input type="button" value="Quit" ng-click="quit()" />
         </div>
         <div>
           <span>Online Users: </span>
@@ -23,13 +25,14 @@
         </div>
       </div>
       <div class="tableArea">
+        State: <span>{{state}}</span>
         Table: <span>{{name}}</span>
         Bet: <span>{{bet}}</span>
         Pot: <span>{{pot}}</span>
         Cards: <span ng-repeat="card in community_cards">{{card}}</span>
         <div class="playersArea">
-          <div class="player" ng-repeat="player in players">
-            <span>{{player.index}}</span>
+          <div ng-repeat="player in players" class="player {{positions[player.player]}}">
+            <span>{{player.player}}</span>
             <span>{{player.name}}</span>
             <span>{{player.chips}}</span>
             <span>{{player.folded}}</span>
@@ -41,6 +44,7 @@
       </div>
       <div class="controlArea">
         <span class="index">{{player_index}}</span>
+        <input type="button" ng-show="state == 0" value="Start" ng-click="game_start()" />
         <input type="button" ng-repeat="action in actions" value="{{action}}" ng-click="game_action(action, range.value)" />
         <div ng-show="range.min > 0 && range.max > 0 && range.max > range.min">
           <input type="range" min="{{range.min}}" max="{{range.max}}" ng-model="range.value"/>

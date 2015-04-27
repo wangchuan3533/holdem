@@ -8,6 +8,7 @@ app.controller('TableController', function($scope, socket) {
   $scope.password  = '';
   $scope.notice    = '';
   $scope.connected = false;
+  $scope.new_table = '';
   $scope.inputMessage = '';
   $scope.messages = [];
   $scope.player_index = -1;
@@ -18,9 +19,11 @@ app.controller('TableController', function($scope, socket) {
   $scope.bet  = 0;
   $scope.pot  = 0;
   $scope.turn = -1;
+  $scope.state = 0;
   $scope.community_cards = [];
   $scope.players = [];
   $scope.action = {};
+  $scope.positions = ['positions0', 'position1', 'position2', 'position3', 'position4', 'position5', 'position6', 'position7', 'position8', 'position9'];
 
   $scope.login = function(method) {
     // If the username is valid
@@ -44,6 +47,19 @@ app.controller('TableController', function($scope, socket) {
     console.log(name);
     socket.emit('message', 'join ' + name);
   };
+
+  $scope.quit = function() {
+    socket.emit('message', 'quit');
+  };
+
+  $scope.create_table = function(name) {
+    socket.emit('message', 'mk ' + name);
+    $scope.new_table = '';
+  }
+
+  $scope.game_start = function() {
+    socket.emit('message', 'start');
+  }
 
   $scope.game_action = function(action, value) {
     switch (action) {
@@ -78,7 +94,7 @@ app.controller('TableController', function($scope, socket) {
     if (!$scope.connected) {
       $scope.notice = data.message;
     }
-    $scope.messages.push(data.message);
+    $scope.messages.unshift(data.message);
   });
 
   socket.on('tables', function(data) {
@@ -102,6 +118,7 @@ app.controller('TableController', function($scope, socket) {
     $scope.bet  = data.bet;
     $scope.pot  = data.pot;
     $scope.turn = data.turn;
+    $scope.state = data.state;
     $scope.community_cards = data.cards;
     $scope.players = data.players;
     $scope.actions = ($scope.player_index >= 0 && $scope.player_index == data.turn) && data.actions;

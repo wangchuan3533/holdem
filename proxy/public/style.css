@@ -183,6 +183,7 @@ color: black;
   left: 10%;
   width: 80%;
   height: 80%;
+  position: relative;
 }
 
 .player {
@@ -190,4 +191,46 @@ color: black;
   height: 40px;
   display: block;
   border: 2px solid navy;
+  position: absolute;
+}
+
+.position0 {
+  top: 0%;
+  left: 0%;
+}
+.position1 {
+  top: 0%;
+  left: 33%;
+}
+.position2 {
+  top: 0%;
+  left: 66%;
+}
+.position3 {
+  top: 0%;
+  right: 0%;
+}
+.position4 {
+  top: 33%;
+  right: 0%;
+}
+.position5 {
+  bottom: 0%;
+  right: 0%;
+}
+.position6 {
+  bottom: 0%;
+  left: 66%;
+}
+.position7 {
+  bottom: 0%;
+  left: 33%;
+}
+.position8 {
+  bottom: 0%;
+  left: 0%;
+}
+.position9 {
+  top: 33%;
+  left: 0%;
 }

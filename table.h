@@ -8,7 +8,7 @@
 #include "user.h"
 
 #define TABLE_MAX_PLAYERS 10
-#define MIN_PLAYERS 3
+#define MIN_PLAYERS 2
 #define MAX_TABLES 1024
 
 typedef enum action_e {
