@@ -49,7 +49,7 @@
         <span class="index">{{player_index}}</span>
         <button class="btn btn-default btn-sm" ng-show="state == 0" ng-click="game_start()"> Start </button>
         <button ass="btn btn-primary" ng-repeat="action in actions" ng-click="game_action(action, range.value)">{{action}}</button>
-        <div ng-show="true || range.min > 0 && range.max > 0 && range.max > range.min">
+        <div ng-show="range.min > 0 && range.max > 0 && range.max > range.min">
           <slider ng-model="range.value" floor="{{range.min}}" ceiling="{{range.max}}" step="{{range.step}}"></slider>
           <span>{{range.value}}</span>
           <span ng-repeat="card in cards">{{card}}</span>
