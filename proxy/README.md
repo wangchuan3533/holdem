@@ -8,6 +8,7 @@ Texas Hold'em Poker websocket proxy
 ```
 $ cd proxy
 $ npm install
+$ bower install
 $ node index
 ```
 

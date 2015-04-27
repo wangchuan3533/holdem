@@ -1,4 +1,4 @@
-var app = angular.module('texasApp', ['btford.socket-io']);
+var app = angular.module('texasApp', ['btford.socket-io', 'ui.bootstrap', 'ui.slider']);
 app.factory('socket', function(socketFactory) {
   return socketFactory();
 });
@@ -6,7 +6,7 @@ app.factory('socket', function(socketFactory) {
 app.controller('TableController', function($scope, socket) {
   $scope.username  = '';
   $scope.password  = '';
-  $scope.notice    = '';
+  $scope.alert     = {};
   $scope.connected = false;
   $scope.new_table = '';
   $scope.inputMessage = '';
@@ -24,6 +24,7 @@ app.controller('TableController', function($scope, socket) {
   $scope.players = [];
   $scope.action = {};
   $scope.positions = ['positions0', 'position1', 'position2', 'position3', 'position4', 'position5', 'position6', 'position7', 'position8', 'position9'];
+  $scope.range = {'min': 100, 'max': 1000, 'value': 100, 'step': 100};
 
   $scope.login = function(method) {
     // If the username is valid
@@ -70,9 +71,10 @@ app.controller('TableController', function($scope, socket) {
     case 'call':
     case 'fold':
     case 'check':
-    case 'all_in':
       socket.emit('message', action);
       break;
+    case 'all_in':
+      socket.emit('message', 'all in');
     default:
       console.log(action);
       break;
@@ -92,7 +94,7 @@ app.controller('TableController', function($scope, socket) {
   socket.on('message', function(data) {
     console.log(data);
     if (!$scope.connected) {
-      $scope.notice = data.message;
+      $scope.alert = {type: 'danger', msg: data.message};
     }
     $scope.messages.unshift(data.message);
   });

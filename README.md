@@ -92,3 +92,5 @@ http://121.42.166.108:8899/
 - sendmsg() bug
 - timeout bug
 - bin log
+- exit bug
+- all in bug
