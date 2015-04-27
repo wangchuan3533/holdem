@@ -32,13 +32,12 @@
         Cards: <span ng-repeat="card in community_cards">{{card}}</span>
         <div class="playersArea">
           <div ng-repeat="player in players" class="player {{positions[player.player]}}">
-            <span>{{player.player}}</span>
-            <span>{{player.name}}</span>
-            <span>{{player.chips}}</span>
-            <span>{{player.folded}}</span>
-            <span>{{player.cards}}</span>
-            <span>{{player.hand}}</span>
-            <span>{{player.bet}}</span>
+            <span class="player_name">{{player.name}}</span>
+            <span class="player_chips">{{player.chips}}</span>
+            <span class="player_folded">{{player.folded}}</span>
+            <span class="player_cards">{{player.cards}}</span>
+            <span class="player_hand">{{player.hand}}</span>
+            <span class="player_bet">{{player.bet}}</span>
           </div>
         </div>
       </div>

@@ -194,6 +194,16 @@ color: black;
   position: absolute;
 }
 
+.player_name {
+  color: red;
+}
+.player_chips {
+  color: blue;
+}
+.player_bet {
+  color: green;
+}
+
 .position0 {
   top: 0%;
   left: 0%;
