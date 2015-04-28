@@ -36,6 +36,7 @@
         Cards: <span ng-repeat="card in community_cards">{{card}}</span>
         <div class="playersArea">
           <div ng-repeat="player in players track by $index" class="player {{positions[player.player]}}" ng-class="{turn: $index==turn}">
+            <span ng-show="dealer == $index">DEALER</span>
             <span class="player_name">{{player.name}}</span>
             <span class="player_chips">{{player.chips}}</span>
             <span class="player_folded">{{player.folded}}</span>

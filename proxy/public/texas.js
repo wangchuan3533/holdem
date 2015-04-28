@@ -19,6 +19,7 @@ app.controller('TableController', function($scope, socket) {
   $scope.bet  = 0;
   $scope.pot  = 0;
   $scope.turn = -1;
+  $scope.dealer = -1;
   $scope.state = 0;
   $scope.community_cards = [];
   $scope.players = [];
@@ -120,6 +121,7 @@ app.controller('TableController', function($scope, socket) {
     $scope.bet  = data.bet;
     $scope.pot  = data.pot;
     $scope.turn = data.turn;
+    $scope.dealer = data.dealer;
     $scope.state = data.state;
     $scope.community_cards = data.cards;
     $scope.players = data.players;
