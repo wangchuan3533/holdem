@@ -8,6 +8,7 @@ app.controller('TableController', function($scope, socket) {
   $scope.password  = '';
   $scope.alert     = {};
   $scope.connected = false;
+  $scope.joined    = false;
   $scope.new_table = '';
   $scope.inputMessage = '';
   $scope.messages = [];
@@ -37,7 +38,7 @@ app.controller('TableController', function($scope, socket) {
   $scope.keydown = function(event) {
     // When the client hits ENTER on their keyboard
     if (event.which === 13) {
-      if ($scope.connected && $scope.inputMessage) {
+      if ($scope.connected && $scope.join && $scope.inputMessage) {
         socket.emit('message', $scope.inputMessage);
         $scope.inputMessage = '';
       }
@@ -89,6 +90,11 @@ app.controller('TableController', function($scope, socket) {
   socket.on('player', function(data) {
     console.log(data);
     $scope.player_index = data.player;
+    if (data.player >= 0) {
+      $scope.joined = true;
+    } else {
+      $scope.joined = false;
+    }
   });
 
   socket.on('message', function(data) {
