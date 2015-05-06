@@ -58,7 +58,6 @@ typedef struct table_s {
 
     player_t *players[TABLE_MAX_PLAYERS];
 
-    int num_players;
     int num_all_in;
     int num_folded;
     int num_active;
@@ -115,7 +114,7 @@ void table_start(table_t *table);
 void table_finish(table_t *table);
 
 void table_init_timeout(table_t *table);
-void table_reset_timeout(table_t *table, int left);
+void table_reset_timeout(table_t *table);
 void table_clear_timeout(table_t *table);
 
 int handle_action(table_t *table, int index, action_t action, int value);
