@@ -72,8 +72,8 @@
           </ul>
         </div>
     </li>
-    <li class="login page" ng-show="!connected">
-      <div class="form">
+    <li class="login page container-fluid" ng-show="!connected">
+      <div class="form row-fluid">
         <div class="input-group alert alert-danger" role="alert" ng-show="alert.msg">{{alert.msg}}</div>
         <div class="input-group"><span class="input-group-addon" id="basic-addon1"><i class="fa fa-user fa-fw"></i></span><input type="text" class="form-control" placeholder="User Name" aria-describedby="basic-addon1" ng-model="username"/></div>
         <div class="input-group"><span class="input-group-addon" id="basic-addon2"><i class="fa fa-lock fa-fw"></i></span><input type="password" class="form-control" placeholder="Password" aria-describedby="basic-addon1" ng-model="password"/></div>
