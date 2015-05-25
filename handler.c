@@ -121,8 +121,8 @@ int logout()
     assert(tmp == user);
     HASH_DELETE(hh, g_users, user);
 
-    if (user_save(user) < 0) {
-        send_msg(user, "save user to db failed %s", user->name);
+    if (user_save_money(user) < 0) {
+        send_msg(user, "save user money to db failed %s", user->name);
         return -1;
     }
 

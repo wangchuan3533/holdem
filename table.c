@@ -416,7 +416,10 @@ int player_quit(user_t *user)
         handle_action(table, table->turn, ACTION_FOLD, 0);
     }
     if (player->chips > 0) {
-        user_add_money(player->user, player->chips);
+        user->money += player->chips;
+        if (user_save_money(user) < 0) {
+            fprintf(stderr, "save money failure\n");
+        }
         player->chips = 0;
     }
     player->user = NULL;
@@ -755,7 +758,7 @@ int player_buy_chips(player_t *player, int chips)
     }
     player->user->money -= chips;
     player->chips += chips;
-    if (user_save(player->user) < 0) {
+    if (user_save_money(player->user) < 0) {
         return -1;
     }
     return 0;

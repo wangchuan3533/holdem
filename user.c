@@ -120,30 +120,16 @@ void broadcast_globalv_raw(const char *fmt, va_list ap)
 
 int user_save(user_t *user)
 {
-    char bufk[128], bufv[128];
-    size_t lenk, lenv;
     int ret;
-
-    lenk = snprintf(bufk, sizeof(bufk), "%s_password", user->name);
-    lenv = sizeof(user->password);
-    memcpy(bufv, user->password, lenv);
-    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    ret = user_save_password(user);
     if (ret < 0) {
         return ret;
     }
-
-    lenk = snprintf(bufk, sizeof(bufk), "%s_prompt", user->name);
-    lenv = sizeof(user->prompt);
-    memcpy(bufv, user->prompt, lenv);
-    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    ret = user_save_prompt(user);
     if (ret < 0) {
         return ret;
     }
-
-    lenk = snprintf(bufk, sizeof(bufk), "%s_money", user->name);
-    lenv = sizeof(user->money);
-    memcpy(bufv, &(user->money), lenv);
-    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    ret = user_save_money(user);
     if (ret < 0) {
         return ret;
     }
@@ -182,8 +168,51 @@ int user_load(const char *name, user_t *user)
     return 0;
 }
 
-int user_add_money(user_t *user, int money)
+int user_save_password(user_t *user)
 {
-    user->money += money;
-    return user_save(user);
+    char bufk[128], bufv[128];
+    size_t lenk, lenv;
+    int ret;
+
+    lenk = snprintf(bufk, sizeof(bufk), "%s_password", user->name);
+    lenv = sizeof(user->password);
+    memcpy(bufv, user->password, lenv);
+    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return 0;
+}
+
+int user_save_prompt(user_t *user)
+{
+    char bufk[128], bufv[128];
+    size_t lenk, lenv;
+    int ret;
+
+    lenk = snprintf(bufk, sizeof(bufk), "%s_prompt", user->name);
+    lenv = sizeof(user->prompt);
+    memcpy(bufv, user->prompt, lenv);
+    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    if (ret < 0) {
+        return ret;
+    }
+    return 0;
+}
+
+int user_save_money(user_t *user)
+{
+    char bufk[128], bufv[128];
+    size_t lenk, lenv;
+    int ret;
+
+    lenk = snprintf(bufk, sizeof(bufk), "%s_money", user->name);
+    lenv = sizeof(user->money);
+    memcpy(bufv, &(user->money), lenv);
+    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    if (ret < 0) {
+        return ret;
+    }
+    return 0;
 }

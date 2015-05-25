@@ -85,6 +85,8 @@ void broadcast_global_websocket(const char *fmt, ...);
 void broadcast_globalv_websocket(const char *fmt, va_list ap);
 int user_save(user_t *user);
 int user_load(const char *name, user_t *user);
-int user_add_money(user_t *user, int money);
+int user_save_password(user_t *user);
+int user_save_prompt(user_t *user);
+int user_save_money(user_t *user);
 
 #endif

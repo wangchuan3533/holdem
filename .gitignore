@@ -8,3 +8,4 @@ tags
 *.tab.h
 *.tab.c
 *.yy.c
+texas.db
