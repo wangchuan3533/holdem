@@ -1,18 +1,18 @@
 # texas hold'em poker
 
 # compile
-依赖libevent berkeley-db
+依赖libevent berkeley-db flex bison
 ubuntu下:
 ```bash
-sudo apt-get install libevent-dev libdb-dev
+sudo apt-get install libevent-dev libdb-dev flex bison
 git clone https://github.com/wangchuan3533/texas_holdem.git
 cd texas_holdem
 make
 ```
 
-开发机环境下:
+OS X
 ```bash
-jumbo install libevent
+brew install libevent berkeley-db flex bison
 git clone https://github.com/wangchuan3533/texas_holdem.git
 cd texas_holdem
 make
@@ -75,7 +75,7 @@ telnet localhost 10000
 ## 使用 websocket代理
 
 ```bash
-cd proxy
+cd gate
 npm install
 node index.js
 ```

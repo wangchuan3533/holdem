@@ -5,7 +5,6 @@ RM=rm -rf
 C_FLAGS=-g -Wall
 #C_FLAGS+=-Werror
 C_FLAGS+=-DTEXAS_ASSERT
-#LD_FLAGS=-levent -lfl -ldb
 LD_FLAGS=-levent -ll -ldb
 LEX_FILES=$(wildcard *.l)
 YACC_FILES=$(wildcard *.y)
