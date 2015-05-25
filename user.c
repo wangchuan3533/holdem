@@ -122,21 +122,31 @@ int user_save(user_t *user)
 {
     char bufk[128], bufv[128];
     size_t lenk, lenv;
+    int ret;
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_password", user->name);
-    lenv = strlen(user->password);
+    lenv = sizeof(user->password);
     memcpy(bufv, user->password, lenv);
-    texas_db_put(bufk, lenk, bufv, lenv);
+    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    if (ret < 0) {
+        return ret;
+    }
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_prompt", user->name);
-    lenv = strlen(user->prompt);
+    lenv = sizeof(user->prompt);
     memcpy(bufv, user->prompt, lenv);
-    texas_db_put(bufk, lenk, bufv, lenv);
+    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    if (ret < 0) {
+        return ret;
+    }
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_money", user->name);
     lenv = sizeof(user->money);
     memcpy(bufv, &(user->money), lenv);
-    texas_db_put(bufk, lenk, bufv, lenv);
+    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    if (ret < 0) {
+        return ret;
+    }
 
     return 0;
 }
@@ -148,17 +158,13 @@ int user_load(const char *name, user_t *user)
     int ret;
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_password", name);
-    lenv = strlen(user->password);
-    memcpy(bufv, user->password, lenv);
     ret = texas_db_get(bufk, lenk, bufv, &lenv);
     if (ret < 0) {
         return ret;
     }
-    memcpy(user->name, bufv, lenv);
+    memcpy(user->password, bufv, lenv);
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_prompt", name);
-    lenv = strlen(user->prompt);
-    memcpy(bufv, user->prompt, lenv);
     ret = texas_db_get(bufk, lenk, bufv, &lenv);
     if (ret < 0) {
         return ret;
@@ -166,13 +172,12 @@ int user_load(const char *name, user_t *user)
     memcpy(user->prompt, bufv, lenv);
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_money", name);
-    lenv = sizeof(user->money);
-    memcpy(bufv, &(user->money), lenv);
     ret = texas_db_get(bufk, lenk, bufv, &lenv);
     if (ret < 0) {
         return ret;
     }
     memcpy(&(user->money), bufv, lenv);
+    strncpy(user->name, name, sizeof(user->name));
 
     return 0;
 }

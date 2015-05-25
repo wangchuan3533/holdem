@@ -1,4 +1,5 @@
 *.o
+*.swp
 server
 node_modules
 bower_components

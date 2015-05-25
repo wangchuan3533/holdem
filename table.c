@@ -755,7 +755,9 @@ int player_buy_chips(player_t *player, int chips)
     }
     player->user->money -= chips;
     player->chips += chips;
-    user_save(player->user);
+    if (user_save(player->user) < 0) {
+        return -1;
+    }
     return 0;
 }
 
