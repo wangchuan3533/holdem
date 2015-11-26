@@ -1,4 +1,4 @@
-#include "texas_holdem.h"
+#include "holdem.h"
 #include "card.h"
 static const char *card_string[] = {
     "[♥2]",

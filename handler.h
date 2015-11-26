@@ -29,5 +29,4 @@ int print_help();
 int reply(const char *fmt, ...);
 int chat(const char *str);
 int prompt(const char *str);
-int set_user_type(int type);
 #endif

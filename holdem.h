@@ -33,9 +33,9 @@
 #define TEXAS_RET_ACTION      -6
 #define TEXAS_RET_ALL_IN      -7
 
-int texas_db_init();
-int texas_db_close();
-int texas_db_put(const void *key, size_t key_len, const void *value, size_t val_len);
-int texas_db_get(const void *key, size_t key_len, void *value, size_t *val_len);
+int holdem_db_init();
+int holdem_db_close();
+int holdem_db_put(const void *key, size_t key_len, const void *value, size_t val_len);
+int holdem_db_get(const void *key, size_t key_len, void *value, size_t *val_len);
 
 #endif

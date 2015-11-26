@@ -1,4 +1,4 @@
-#include "texas_holdem.h"
+#include "holdem.h"
 #include "user.h"
 user_t *g_current_user;
 user_t *g_users = NULL;
@@ -54,28 +54,6 @@ void send_msg_raw(user_t *user, const char *fmt, ...)
 void send_msgv_raw(user_t *user, const char *fmt, va_list ap)
 {
     evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
-}
-
-void broadcast_global_websocket(const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    broadcast_globalv_websocket(fmt, ap);
-    va_end(ap);
-}
-
-void broadcast_globalv_websocket(const char *fmt, va_list ap)
-{
-    user_t *tmp, *user;
-    va_list cp;
-
-    HASH_ITER(hh, g_users, user, tmp) {
-        if (user->type == USER_TYPE_WEBSOCKET) {
-            va_copy(cp, ap);
-            send_msgv(user, fmt, cp);
-        }
-    }
 }
 
 void broadcast_global(const char *fmt, ...)
@@ -144,21 +122,21 @@ int user_load(const char *name, user_t *user)
     int ret;
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_password", name);
-    ret = texas_db_get(bufk, lenk, bufv, &lenv);
+    ret = holdem_db_get(bufk, lenk, bufv, &lenv);
     if (ret < 0) {
         return ret;
     }
     memcpy(user->password, bufv, lenv);
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_prompt", name);
-    ret = texas_db_get(bufk, lenk, bufv, &lenv);
+    ret = holdem_db_get(bufk, lenk, bufv, &lenv);
     if (ret < 0) {
         return ret;
     }
     memcpy(user->prompt, bufv, lenv);
 
     lenk = snprintf(bufk, sizeof(bufk), "%s_money", name);
-    ret = texas_db_get(bufk, lenk, bufv, &lenv);
+    ret = holdem_db_get(bufk, lenk, bufv, &lenv);
     if (ret < 0) {
         return ret;
     }
@@ -177,7 +155,7 @@ int user_save_password(user_t *user)
     lenk = snprintf(bufk, sizeof(bufk), "%s_password", user->name);
     lenv = sizeof(user->password);
     memcpy(bufv, user->password, lenv);
-    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    ret = holdem_db_put(bufk, lenk, bufv, lenv);
     if (ret < 0) {
         return ret;
     }
@@ -194,7 +172,7 @@ int user_save_prompt(user_t *user)
     lenk = snprintf(bufk, sizeof(bufk), "%s_prompt", user->name);
     lenv = sizeof(user->prompt);
     memcpy(bufv, user->prompt, lenv);
-    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    ret = holdem_db_put(bufk, lenk, bufv, lenv);
     if (ret < 0) {
         return ret;
     }
@@ -210,7 +188,7 @@ int user_save_money(user_t *user)
     lenk = snprintf(bufk, sizeof(bufk), "%s_money", user->name);
     lenv = sizeof(user->money);
     memcpy(bufv, &(user->money), lenv);
-    ret = texas_db_put(bufk, lenk, bufv, lenv);
+    ret = holdem_db_put(bufk, lenk, bufv, lenv);
     if (ret < 0) {
         return ret;
     }

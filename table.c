@@ -1,4 +1,4 @@
-#include "texas_holdem.h"
+#include "holdem.h"
 #include "table.h"
 
 table_t *g_tables = NULL;
@@ -106,11 +106,6 @@ void table_pre_flop(table_t *table)
                 send_msg(table->players[i]->user, "[PRE_FLOP] %s, %s",
                         card_to_string(table->players[i]->hand_cards[0]),
                         card_to_string(table->players[i]->hand_cards[1]));
-                if (table->players[i]->user->type == USER_TYPE_WEBSOCKET) {
-                    send_msg(table->players[i]->user, "{\"type\":\"cards\",\"data\":{\"cards\":[\"%s\",\"%s\"]}}",
-                        card_to_string(table->players[i]->hand_cards[0]),
-                        card_to_string(table->players[i]->hand_cards[1]));
-                }
         }
     }
 
@@ -375,9 +370,6 @@ void broadcast(table_t *table, const char *fmt, ...)
     for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
         if (table->players[i]->user) {
             send_msgv(table->players[i]->user, fmt, ap);
-            if (table->players[i]->user->type == USER_TYPE_WEBSOCKET) {
-                send_msg(table->players[i]->user, table->json_cache);
-            }
         }
     }
     va_end(ap);

@@ -5,16 +5,16 @@
 ubuntu下:
 ```bash
 sudo apt-get install libevent-dev libdb-dev flex bison
-git clone https://github.com/wangchuan3533/texas_holdem.git
-cd texas_holdem
+git clone https://github.com/wangchuan3533/holdem.git
+cd holdem
 make
 ```
 
 OS X
 ```bash
 brew install libevent berkeley-db flex bison
-git clone https://github.com/wangchuan3533/texas_holdem.git
-cd texas_holdem
+git clone https://github.com/wangchuan3533/holdem.git
+cd holdem
 make
 ```
 
@@ -72,19 +72,8 @@ telnet localhost 10000
 ### 计算器
 - 支持加减乘除的基本运算，数字支持10进制和16进制(0x前缀)
 
-## 使用 websocket代理
-
-```bash
-cd gate
-npm install
-node index.js
-```
-用浏览器打开 http://localhost:8899/
-
 ## Online Demo
 telnet 121.42.166.108 10000
-or
-http://121.42.166.108:8899/
 
 ## TODO
 - burn card

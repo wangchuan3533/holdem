@@ -25,7 +25,6 @@ typedef struct user_s {
     user_state_t state;
     UT_hash_handle hh;
     int index;
-    int type;
 } user_t;
 
 #ifdef TEXAS_ASSERT

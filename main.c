@@ -1,4 +1,4 @@
-#include "texas_holdem.h"
+#include "holdem.h"
 #include "card.h"
 #include "user.h"
 #include "table.h"
@@ -133,7 +133,7 @@ int main(int c, char **v)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     signal(SIGPIPE, SIG_IGN);
-    texas_db_init();
+    holdem_db_init();
 
     run();
     return 0;

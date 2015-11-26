@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <db.h>
 
-#define DATABASE "texas.db"
+#define DATABASE "holdem.db"
 DB *g_db;
 
-int texas_db_init()
+int holdem_db_init()
 {
     int ret;
 
@@ -21,7 +21,7 @@ int texas_db_init()
     return 0;
 }
 
-int texas_db_close()
+int holdem_db_close()
 {
     int ret;
 
@@ -31,7 +31,7 @@ int texas_db_close()
     return 0;
 }
 
-int texas_db_put(const void *key, size_t key_len, const void *value, size_t val_len)
+int holdem_db_put(const void *key, size_t key_len, const void *value, size_t val_len)
 {
     int ret;
     DBT k, v;
@@ -54,7 +54,7 @@ int texas_db_put(const void *key, size_t key_len, const void *value, size_t val_
     return 0;
 }
 
-int texas_db_get(const void *key, size_t key_len, void *value, size_t *val_len)
+int holdem_db_get(const void *key, size_t key_len, void *value, size_t *val_len)
 {
     int ret;
     DBT k, v;
