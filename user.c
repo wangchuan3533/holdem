@@ -38,9 +38,9 @@ void send_msg(user_t *user, const char *fmt, ...)
 }
 
 void send_msgv(user_t *user, const char *fmt, va_list ap)
-{    
-        evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
-        evbuffer_add_printf(bufferevent_get_output(user->bev), "%s\n", user->prompt);
+{
+    evbuffer_add_vprintf(bufferevent_get_output(user->bev), fmt, ap);
+    evbuffer_add_printf(bufferevent_get_output(user->bev), "%s\n", user->prompt);
 }
 
 void send_msg_raw(user_t *user, const char *fmt, ...)

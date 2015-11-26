@@ -2,7 +2,6 @@
 #include "card.h"
 #include "user.h"
 #include "table.h"
-#include "list.h"
 #include "handler.h"
 
 #define MAX_LINE 4096

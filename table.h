@@ -2,7 +2,6 @@
 #define _TABLE_H
 
 #include "uthash.h"
-#include "list.h"
 #include "card.h"
 #include "hand.h"
 #include "user.h"
