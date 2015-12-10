@@ -66,7 +66,6 @@ void table_prepare(table_t *table)
 
         table->players[i]->bet        = 0;
         table->players[i]->talked     = 0;
-        table->players[i]->rank.level = 0;
         table->players[i]->rank.score = 0;
         table->players[i]->pot_offset = 0;
 
@@ -84,7 +83,6 @@ void table_prepare(table_t *table)
     }
 
     table->state  = TABLE_STATE_WAITING;
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
 }
 
 void table_pre_flop(table_t *table)
@@ -131,7 +129,6 @@ void table_pre_flop(table_t *table)
     table_reset_timeout(table);
     table->state = TABLE_STATE_PREFLOP;
 
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
     report_table(table);
 }
 
@@ -160,7 +157,6 @@ void table_flop(table_t *table)
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table);
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
     report_table(table);
 }
 
@@ -188,7 +184,6 @@ void table_turn(table_t *table)
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table);
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
     report_table(table);
 }
 
@@ -217,14 +212,13 @@ void table_river(table_t *table)
     table->turn = next_player(table, table->dealer);
     table->action_mask = ACTION_FOLD | ACTION_ALL_IN | ACTION_CHCEK | ACTION_BET;
     table_reset_timeout(table);
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
     report_table(table);
 }
 
 int cmp_by_rank(const void *a, const void *b)
 {
     player_t **x = (player_t **)a, **y = (player_t **)b;
-    return rank_cmp((*y)->rank, (*x)->rank);
+    return (*y)->rank.score - (*x)->rank.score;
 }
 
 void table_start(table_t *table)
@@ -254,7 +248,6 @@ void table_finish(table_t *table)
                 }
                 broadcast(table, "player %d wins %d", i, chips);
                 table->players[i]->chips += chips;
-                table_to_json(table, table->json_cache, sizeof(table->json_cache));
                 report_table(table);
                 table_prepare(table);
                 return;
@@ -281,7 +274,7 @@ void table_finish(table_t *table)
             hand_to_string(table->players[i]->hand_cards, table->players[i]->rank, buffer, sizeof(buffer));
             broadcast(table, "player %d's cards is %s, %s. rank is [%s], hand is %s, score is %d",
                     i, card_to_string(table->players[i]->hand_cards[0]), card_to_string(table->players[i]->hand_cards[1]),
-                    level_to_string(table->players[i]->rank.level), buffer, table->players[i]->rank.score);
+                    level_to_string(GET_RANK(table->players[i]->rank.score)), buffer, table->players[i]->rank.score);
             possible_winners[possible_winners_count++] = table->players[i];
         }
     }
@@ -292,9 +285,7 @@ void table_finish(table_t *table)
     // distribute the pots to winners
     for (i = 0; i < possible_winners_count; i = j) {
         // we may have more than one winners with the same rank&score
-        for (j = i + 1; j < possible_winners_count
-                && possible_winners[j]->rank.level == possible_winners[i]->rank.level
-                && possible_winners[j]->rank.score == possible_winners[i]->rank.score; j++);
+        for (j = i + 1; j < possible_winners_count && possible_winners[j]->rank.score == possible_winners[i]->rank.score; j++);
         memset(pot_share_count, 0, sizeof pot_share_count);
         for (k = i; k < j; k++) {
             for (l = 0; l < possible_winners[k]->pot_offset; l++) {
@@ -311,7 +302,6 @@ void table_finish(table_t *table)
             broadcast(table, "player %d wins %d", possible_winners[k] - table->players[0], chips);
         }
     }
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
     report_table(table);
     table_prepare(table);
 }
@@ -346,21 +336,6 @@ int action_to_string(action_t mask, char *buffer, int size)
     return offset;
 }
 
-int action_to_json(action_t mask, char *buffer, int size)
-{
-    int offset = 0;
-    buffer[offset++] = '[';
-    if (mask & ACTION_BET)    offset += snprintf(buffer + offset, size - offset, "\"bet\",");
-    if (mask & ACTION_RAISE)  offset += snprintf(buffer + offset, size - offset, "\"raise\",");
-    if (mask & ACTION_CALL)   offset += snprintf(buffer + offset, size - offset, "\"call\",");
-    if (mask & ACTION_CHCEK)  offset += snprintf(buffer + offset, size - offset, "\"check\",");
-    if (mask & ACTION_FOLD)   offset += snprintf(buffer + offset, size - offset, "\"fold\",");
-    if (mask & ACTION_ALL_IN) offset += snprintf(buffer + offset, size - offset, "\"all_in\",");
-    if (offset > 1) offset--;
-    offset += snprintf(buffer + offset, size - offset, "]");
-    return offset;
-}
-
 void broadcast(table_t *table, const char *fmt, ...)
 {
     int i;
@@ -390,7 +365,6 @@ int player_join(table_t *table, user_t *user)
             if (player->chips < table->minimum_bet && player->user->money > 10000 ) {
                 player_buy_chips(player, 10000);
             }
-            table_to_json(table, table->json_cache, sizeof(table->json_cache));
             broadcast(table, "player %d %s joined chips %d", i, user->name, player->chips);
             return TEXAS_RET_SUCCESS;
         }
@@ -418,7 +392,6 @@ int player_quit(user_t *user)
     user->table = NULL;
     user->index = -1;
     user->state &= ~USER_STATE_TABLE;
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
     broadcast(table, "player %d quit", index);
     return TEXAS_RET_SUCCESS;
 }
@@ -638,7 +611,6 @@ int handle_action(table_t *table, int index, action_t action, int value)
     }
 
     table->turn = next;
-    table_to_json(table, table->json_cache, sizeof(table->json_cache));
     report_table(table);
     if (player_next->user == NULL) {
         return handle_action(table, next, ACTION_FOLD, 0);
@@ -772,41 +744,3 @@ int table_chat(table_t *table, int index, const char *msg)
     return 0;
 }
 
-int table_to_json(table_t *table, char *buffer, int size)
-{
-    int i, offset = 0;
-
-    offset += snprintf(buffer + offset, size - offset, "{\"type\":\"table\",\"data\":{\"name\":\"%s\",\"turn\":%d,\"dealer\":%d,\"state\":%d,\"bet\":%d,\"min\":%d,\"pot\":%d,\"actions\":",
-            table->name, table->turn, table->dealer, table->state, table->bet, table->minimum_raise, table->pot);
-    offset += action_to_json(table->action_mask, buffer + offset, size - offset);
-
-    if (table->num_cards > 0) {
-        offset += snprintf(buffer + offset, size - offset, ",\"cards\":[");
-        for (i = 0; i < table->num_cards; i++) {
-            offset += snprintf(buffer + offset, size - offset, "\"%s\",", card_to_string(table->community_cards[i]));
-        }
-        buffer[offset - 1] = ']';
-    }
-
-    if (table->pot_count > 0) {
-        offset += snprintf(buffer + offset, size - offset, ",\"side_pots\":[");
-        for (i = 0; i < table->pot_count; i++) {
-            offset += snprintf(buffer + offset, size - offset, "%d,", table->side_pots[i]);
-        }
-        buffer[offset - 1] = ']';
-    }
-
-    offset += snprintf(buffer + offset, size - offset, ",\"players\":[");
-    for (i = 0; i < TABLE_MAX_PLAYERS; i++) {
-        if (table->players[i]->user) {
-            offset += snprintf(buffer + offset, size - offset, "{\"player\":%d,\"name\":\"%s\",\"state\":%d,\"chips\":%d,\"bet\":%d,\"pot_offset\":%d},",
-                    i, table->players[i]->user->name, table->players[i]->state, table->players[i]->chips, table->players[i]->bet, table->players[i]->pot_offset);
-        }
-    }
-    if (buffer[offset - 1] == ',') {
-        offset--;
-    }
-
-    offset += snprintf(buffer + offset, size - offset, "]}}");
-    return offset;
-}

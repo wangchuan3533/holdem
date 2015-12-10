@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 hand_rank_t _calc_rank(hand_t hand);
-unsigned int bit_count(unsigned int i);
 static const char *level_string[] = {
     "HIGH_CARD",
     "ONE_PAIR",
@@ -16,6 +15,14 @@ static const char *level_string[] = {
     "ROYAL_FLUSH",
 };
 
+static unsigned int masks[] = {
+    0x1f, 0x2f, 0x37, 0x3b, 0x3d, 0x3e, 0x4f,
+    0x57, 0x5b, 0x5d, 0x5e, 0x67, 0x6b, 0x6d,
+    0x6e, 0x73, 0x75, 0x76, 0x79, 0x7a, 0x7c,
+};
+#define NUM_MASKS (sizeof(masks) / sizeof(unsigned int))
+
+
 inline const char *level_to_string(hand_level_t level)
 {
     return level_string[level];
@@ -27,21 +34,17 @@ hand_rank_t calc_rank(hand_t hand)
     unsigned int i, j, k;
     hand_rank_t max_rank, rank;
 
-    max_rank.level = 0;
     max_rank.score = 0;
-    for (i = 0; i < (1u << HAND_NUM); i++) {
-        if (bit_count(i) != CARD_NUM) {
-            continue;
-        }
+    for (i = 0; i < NUM_MASKS; i++) {
         for (j = 0, k = 0; j < HAND_NUM; j++) {
-            if (i & (1u << j)) {
+            if (masks[i] & (1u << j)) {
                 cards[k++] = hand[j];
             }
         }
         
         rank = _calc_rank(cards);
-        rank.mask = i;
-        if (rank_cmp(rank, max_rank) > 0) {
+        rank.mask = masks[i];
+        if (rank.score > max_rank.score) {
             max_rank = rank;
         }
     }
@@ -93,53 +96,32 @@ hand_rank_t _calc_rank(hand_t hand)
         }
         for (j = CARD_BASE - 1; j >= 0; j--) {
             if (numbers[j] == i) {
-                rank.score *= CARD_BASE;
-                rank.score += j;
+                rank.score <<= 4;
+                rank.score |= j;
             }
         }
     }
 
     // calc levels
     if (flush && straight) {
-        rank.level = numbers[CARD_BASE - 1] ? ROYAL_FLUSH : STRAIGHT_FLUSH;
-        return rank;
+        SET_RANK(rank.score, STRAIGHT_FLUSH);
+    } else if (statistics[4]) {
+        SET_RANK(rank.score, FOUR_OF_A_KIND);
+    } else if (statistics[3] && statistics[2]) {
+        SET_RANK(rank.score, FULL_HORSE);
+    } else if (flush) {
+        SET_RANK(rank.score, FLUSH);
+    } else if (straight) {
+        SET_RANK(rank.score, STRAIGHT);
+    } else if (statistics[3]) {
+        SET_RANK(rank.score, THREE_OF_A_KIND);
+    } else if (statistics[2] >= 2) {
+        SET_RANK(rank.score, TWO_PAIR);
+    } else if (statistics[2]) {
+        SET_RANK(rank.score, ONE_PAIR);
+    } else {
+        SET_RANK(rank.score, HIGH_CARD);
     }
-
-    if (statistics[4]) {
-        rank.level = FOUR_OF_A_KIND;
-        return rank;
-    }
-    
-    if (statistics[3] && statistics[2]) {
-        rank.level = FULL_HORSE;
-        return rank;
-    }
-
-    if (flush) {
-        rank.level = FLUSH;
-        return rank;
-    }
-
-    if (straight) {
-        rank.level = STRAIGHT;
-        return rank;
-    }
-    
-    if (statistics[3]) {
-        rank.level = THREE_OF_A_KIND;
-        return rank;
-    }
-
-    if (statistics[2] >= 2) {
-        rank.level = TWO_PAIR;
-        return rank;
-    }
-
-    if (statistics[2]) {
-        rank.level = ONE_PAIR;
-        return rank;
-    }
-    rank.level = HIGH_CARD;
     return rank;
 }
 
@@ -149,23 +131,6 @@ inline unsigned int bit_count(unsigned int i)
      i = i - ((i >> 1) & 0x55555555);
      i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
      return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-}
-
-inline int rank_cmp(hand_rank_t r1, hand_rank_t r2)
-{
-    if (r1.level > r2.level) {
-        return 1;
-    }
-    if (r1.level < r2.level) {
-        return -1;
-    }
-    if (r1.score > r2.score) {
-        return 1;
-    }
-    if (r1.score < r2.score) {
-        return -1;
-    }
-    return 0;
 }
 
 int hand_to_string(card_t *cards, hand_rank_t rank, char *buffer, int size)

@@ -79,7 +79,6 @@ typedef struct table_s {
     struct event_base *base;
     struct event *ev_timeout;
     UT_hash_handle hh;
-    char json_cache[1024];
 } table_t;
 
 #define current_player(t) ((t)->players[(t)->turn])
@@ -126,7 +125,6 @@ void timeoutcb(evutil_socket_t fd, short events, void *arg);
 void report_table(table_t *table);
 int player_buy_chips(player_t *player, int chips);
 int table_chat(table_t *table, int index, const char *msg);
-int table_to_json(table_t *table, char *buffer, int size);
 
 extern table_t *g_tables;
 extern int g_num_tables;

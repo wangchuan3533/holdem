@@ -17,16 +17,17 @@ typedef enum hand_level_s {
     FULL_HORSE,
     FOUR_OF_A_KIND,
     STRAIGHT_FLUSH,
-    ROYAL_FLUSH,
 } hand_level_t;
 
+#define SET_RANK(score, rank) ((score) |= ((rank) << 20))
+#define GET_RANK(score) ((score) >> 20)
+
 typedef struct  hand_rank_s {
-    hand_level_t level;
-    int score;
+    unsigned int score;
     unsigned int mask;
 } hand_rank_t;
+
 const char *level_to_string(hand_level_t);
-int rank_cmp(hand_rank_t r1, hand_rank_t r2);
 hand_rank_t calc_rank(hand_t hand);
 int hand_to_string(card_t *cards, hand_rank_t rank, char *buffer, int size);
 #endif

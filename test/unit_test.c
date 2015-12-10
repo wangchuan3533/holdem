@@ -22,12 +22,12 @@ int test_rank()
         ranks[i] = calc_rank(cases[i]);
     }
 
-    assert(ranks[0].level == ROYAL_FLUSH && ranks[0].score == ((((12 * 13) + 11) * 13 + 10) * 13 + 9) * 13 + 8);
-    assert(ranks[1].level == STRAIGHT_FLUSH && ranks[1].score == ((((8 * 13) + 7) * 13 + 6) * 13 + 5) * 13 + 4);
-    assert(ranks[2].level == FOUR_OF_A_KIND && ranks[2].score == 10 * 13 + 3);
-    assert(ranks[3].level == FULL_HORSE && ranks[3].score == 9 * 13 + 12);
-    assert(ranks[4].level == FLUSH && ranks[4].score == ((((12 * 13) + 8) * 13 + 6) * 13 + 3) * 13 + 2);
-    assert(ranks[5].level == THREE_OF_A_KIND && ranks[5].score == ((2 * 13) + 12) * 13 + 9);
+    assert(GET_RANK(ranks[0].score) == STRAIGHT_FLUSH && ranks[0].score == 0x8cba98);
+    assert(GET_RANK(ranks[1].score) == STRAIGHT_FLUSH && ranks[1].score == 0x887654);
+    assert(GET_RANK(ranks[2].score) == FOUR_OF_A_KIND && ranks[2].score == 0x7000a3);
+    assert(GET_RANK(ranks[3].score) == FULL_HORSE && ranks[3].score == 0x60009c);
+    assert(GET_RANK(ranks[4].score) == FLUSH && ranks[4].score == 0x5c8632);
+    assert(GET_RANK(ranks[5].score) == THREE_OF_A_KIND && ranks[5].score == 0x3002c9);
 
     return 0;
 }
