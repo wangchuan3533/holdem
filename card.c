@@ -72,7 +72,13 @@ inline void init_deck(deck_t *deck)
 
 inline int get_card(deck_t *deck)
 {
-    int index = random() % (deck->end--);
+    int index;
+
+    if (deck->end == 0) {
+        return -1;
+    }
+
+    index = random() % (deck->end--);
     if (index == deck->end) {
         return deck->cards[deck->end];
     }

@@ -127,7 +127,6 @@ void run(void)
     event_base_dispatch(base);
 }
 
-#ifndef UNIT_TEST
 int main(int c, char **v)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -137,4 +136,3 @@ int main(int c, char **v)
     run();
     return 0;
 }
-#endif

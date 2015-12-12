@@ -15,11 +15,7 @@ OBJS=$(SOURCES:.c=.o)
 .PHONY: clean
 all: server
 
-unit_test: C_FLAGS+=-DUNIT_TEST
-
 server : $(OBJS)
-	$(CC) $^ -o $@ $(LD_FLAGS)
-unit_test : $(OBJS)
 	$(CC) $^ -o $@ $(LD_FLAGS)
 %.o: %.c
 	$(CC) $(C_FLAGS) -c $< -o $@
@@ -32,4 +28,4 @@ lex.yy.c : $(LEX_FILES)
 %.tab.c %.tab.h : $(YACC_FILES)
 	$(YACC) -d $^
 clean:
-	$(RM) *.o server unit_test lex.yy.c *.tab.h *.tab.c
+	$(RM) *.o server lex.yy.c *.tab.h *.tab.c
