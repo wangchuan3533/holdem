@@ -85,6 +85,9 @@ hand_rank_t _calc_rank(hand_t hand)
         }
         if (j == 5) {
             straight = 1;
+        } else if (i == 4 && j == 5 && numbers[CARD_BASE - 1] > 0) {
+            straight = 1;
+            numbers[CARD_BASE - 1] = 0;
         }
     }
 
